@@ -62,10 +62,43 @@ async function v751EnsureClassicModel(y,m){
   return rebuilt;
 }
 
+async function v751RepairExistingMonth(y,m){
+  const tab=`${MONTHS_FR[m]} ${y}`;
+  if(await v751IsClassicMonth(tab)) return tab;
+
+  const props=await v751SheetProps();
+  const target=props.find(p=>p.title===tab);
+  if(!target) return null;
+
+  const model=await v751EnsureClassicModel(y,m);
+  await api(':batchUpdate',{
+    method:'POST',
+    body:{requests:[
+      {deleteSheet:{sheetId:target.sheetId}},
+      {duplicateSheet:{sourceSheetId:model.sheetId,insertSheetIndex:target.index,newSheetName:tab}}
+    ]}
+  });
+
+  metaAt=0;
+  delete structCache[tab];
+  delete monthCache[tab];
+  await loadMeta(true);
+  await valuesUpdate(`'${tab}'!A1`,`${MONTHS_FR[m].toUpperCase()} ${y}`,'RAW');
+  await applyRecurringValues(tab);
+  await syncMonthIndex(tab);
+  metaAt=0;
+  await loadMeta(true);
+  toast(`✅ ${tab} réparé comme un mois classique`);
+  return tab;
+}
+
 createMonthFromTemplate=async function(y,m,interactive=true){
   await loadMeta(true);
   const tab=`${MONTHS_FR[m]} ${y}`;
-  if(monthTabs.some(t=>t.y===y&&t.m===m)) return tabTitleFor(y,m);
+  if(monthTabs.some(t=>t.y===y&&t.m===m)){
+    if(!(await v751IsClassicMonth(tab))) return v751RepairExistingMonth(y,m);
+    return tabTitleFor(y,m);
+  }
   if(!interactive) throw new Error(`L'onglet « ${tab} » n'existe pas encore.`);
 
   if(!(await infraReady())) throw new Error('Le Google Sheet doit contenir les index techniques nécessaires.');
@@ -96,4 +129,17 @@ createMonthFromTemplate=async function(y,m,interactive=true){
   gridSections=null;
   toast(`✅ ${tab} créé comme un mois classique`);
   return tab;
+};
+
+/* Répare aussi un onglet mensuel déjà créé mais invalide avant toute nouvelle saisie. */
+const v751BaseWriteEntry=writeEntry;
+writeEntry=async function(payload){
+  const d=new Date(payload.dateISO+'T12:00:00');
+  const y=d.getFullYear(),m=d.getMonth();
+  await loadMeta(true);
+  const tab=tabTitleFor(y,m);
+  if(monthTabs.some(t=>t.y===y&&t.m===m) && !(await v751IsClassicMonth(tab))){
+    await v751RepairExistingMonth(y,m);
+  }
+  return v751BaseWriteEntry(payload);
 };
