@@ -1,6 +1,8 @@
-/* Service worker v7.5.1 : réseau d'abord, cache hors-ligne.
-   Les patches v7.5 et v7.5.1 sont ajoutés à app.js à la volée. */
-const CACHE = 'budget-saisie-v7-5-1';
+/* Service worker v7.5.2 : réseau d'abord, cache hors-ligne.
+   Charge les correctifs dashboard + création/réparation des mois.
+   À l'activation d'une nouvelle version, recharge les fenêtres ouvertes pour
+   éviter qu'une ancienne logique reste en mémoire. */
+const CACHE = 'budget-saisie-v7-5-2';
 const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
@@ -8,15 +10,18 @@ self.addEventListener('install', (e)=>{
 });
 
 self.addEventListener('activate', (e)=>{
-  e.waitUntil(
-    caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
-      .then(()=>self.clients.claim())
-  );
+  e.waitUntil((async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+    await self.clients.claim();
+    const cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    await Promise.all(cs.map(c=>c.navigate(c.url).catch(()=>{})));
+  })());
 });
 
 async function networkOrCache(req){
   try{
-    const resp=await fetch(req);
+    const resp=await fetch(req,{cache:'no-store'});
     const copy=resp.clone();
     caches.open(CACHE).then(c=>c.put(req,copy)).catch(()=>{});
     return resp;
@@ -33,22 +38,16 @@ async function getPatch(path){
 
 async function patchedApp(req){
   let base;
-  try{ base=await fetch(req); }
+  try{ base=await fetch(req,{cache:'no-store'}); }
   catch(_){ base=await caches.match(req); }
   if(!base) throw new Error('app.js indisponible');
 
-  const [p75,p751]=await Promise.all([getPatch('./patch-v75.js'),getPatch('./patch-v751.js')]);
+  const [p75,p752]=await Promise.all([getPatch('./patch-v75.js'),getPatch('./patch-v751.js')]);
   const baseText=await base.text();
   const p75Text=p75?await p75.text():'';
-  const p751Text=p751?await p751.text():'';
-  const body=baseText+
-    '\n\n/* === Budget v7.5 runtime patch === */\n'+p75Text+
-    '\n\n/* === Budget v7.5.1 classic month fix === */\n'+p751Text;
-
-  const out=new Response(body,{status:200,headers:{
-    'Content-Type':'application/javascript; charset=utf-8',
-    'Cache-Control':'no-store'
-  }});
+  const p752Text=p752?await p752.text():'';
+  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text;
+  const out=new Response(body,{status:200,headers:{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'}});
   caches.open(CACHE).then(c=>c.put(req,out.clone())).catch(()=>{});
   return out;
 }
