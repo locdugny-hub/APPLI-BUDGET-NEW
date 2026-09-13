@@ -1,10 +1,10 @@
-/* Service worker v7.5.11 : réseau d'abord, cache hors-ligne.
+/* Service worker v7.5.12 : réseau d'abord, cache hors-ligne.
    Charge dashboard, réparation des mois, auth fluide, dashboard premium cash,
    synchronisation automatique des GID Google, filtres déroulants, layout final,
-   optimisation iPhone 12 Pro Max, header compact et safe area iOS sticky.
+   optimisation iPhone 12 Pro Max, header mobile non sticky et reprise Face ID iOS.
    Recharge les fenêtres ouvertes à l'activation pour éviter un ancien cache. */
-const CACHE = 'budget-saisie-v7-5-11';
-const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
+const CACHE = 'budget-saisie-v7-5-12';
+const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './patch-v7512.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -43,7 +43,7 @@ async function patchedApp(req){
   catch(_){ base=await caches.match(req); }
   if(!base) throw new Error('app.js indisponible');
 
-  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511]=await Promise.all([
+  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511,p7512]=await Promise.all([
     getPatch('./patch-v75.js'),
     getPatch('./patch-v751.js'),
     getPatch('./patch-v753.js'),
@@ -54,7 +54,8 @@ async function patchedApp(req){
     getPatch('./patch-v758.js'),
     getPatch('./patch-v759.js'),
     getPatch('./patch-v7510.js'),
-    getPatch('./patch-v7511.js')
+    getPatch('./patch-v7511.js'),
+    getPatch('./patch-v7512.js')
   ]);
   const baseText=await base.text();
   const p75Text=p75?await p75.text():'';
@@ -68,7 +69,8 @@ async function patchedApp(req){
   const p759Text=p759?await p759.text():'';
   const p7510Text=p7510?await p7510.text():'';
   const p7511Text=p7511?await p7511.text():'';
-  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text+'\n\n/* === Budget v7.5.10 compact mobile header === */\n'+p7510Text+'\n\n/* === Budget v7.5.11 iOS sticky safe-area fix === */\n'+p7511Text;
+  const p7512Text=p7512?await p7512.text():'';
+  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text+'\n\n/* === Budget v7.5.10 compact mobile header === */\n'+p7510Text+'\n\n/* === Budget v7.5.11 iOS sticky safe-area fix === */\n'+p7511Text+'\n\n/* === Budget v7.5.12 non-sticky header + Face ID recovery === */\n'+p7512Text;
   const out=new Response(body,{status:200,headers:{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'}});
   caches.open(CACHE).then(c=>c.put(req,out.clone())).catch(()=>{});
   return out;
