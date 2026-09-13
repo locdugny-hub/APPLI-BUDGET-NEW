@@ -1,9 +1,9 @@
-/* Service worker v7.5.13 : réseau d'abord, cache hors-ligne.
+/* Service worker v7.5.14 : réseau d'abord, cache hors-ligne.
    Charge dashboard, réparation des mois, auth fluide, dashboard premium cash,
    synchronisation automatique des GID Google, filtres déroulants, layout final,
    optimisation iPhone 12 Pro Max, header mobile non sticky et Face ID cold-start stabilisé.
-   Recharge les fenêtres ouvertes à l'activation pour éviter un ancien cache. */
-const CACHE = 'budget-saisie-v7-5-13';
+   Important : aucune navigation forcée à l'activation afin de ne pas interrompre Face ID/WebAuthn. */
+const CACHE = 'budget-saisie-v7-5-14';
 const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './patch-v7512.js', './patch-v7513.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
@@ -15,8 +15,6 @@ self.addEventListener('activate', (e)=>{
     const keys=await caches.keys();
     await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
     await self.clients.claim();
-    const cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    await Promise.all(cs.map(c=>c.navigate(c.url).catch(()=>{})));
   })());
 });
 
