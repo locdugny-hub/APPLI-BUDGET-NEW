@@ -1,10 +1,10 @@
-/* Service worker v7.5.8 : réseau d'abord, cache hors-ligne.
+/* Service worker v7.5.9 : réseau d'abord, cache hors-ligne.
    Charge dashboard, réparation des mois, auth fluide, dashboard premium cash,
-   synchronisation automatique des GID Google, filtres déroulants, layout final
-   et optimisation mobile iPhone 12 Pro Max.
+   synchronisation automatique des GID Google, filtres déroulants, layout final,
+   optimisation iPhone 12 Pro Max et ajustements de lisibilité mobile.
    Recharge les fenêtres ouvertes à l'activation pour éviter un ancien cache. */
-const CACHE = 'budget-saisie-v7-5-8';
-const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
+const CACHE = 'budget-saisie-v7-5-9';
+const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -43,7 +43,7 @@ async function patchedApp(req){
   catch(_){ base=await caches.match(req); }
   if(!base) throw new Error('app.js indisponible');
 
-  const [p75,p752,p753,p754,p755,p756,p757,p758]=await Promise.all([
+  const [p75,p752,p753,p754,p755,p756,p757,p758,p759]=await Promise.all([
     getPatch('./patch-v75.js'),
     getPatch('./patch-v751.js'),
     getPatch('./patch-v753.js'),
@@ -51,7 +51,8 @@ async function patchedApp(req){
     getPatch('./patch-v755.js'),
     getPatch('./patch-v756.js'),
     getPatch('./patch-v757.js'),
-    getPatch('./patch-v758.js')
+    getPatch('./patch-v758.js'),
+    getPatch('./patch-v759.js')
   ]);
   const baseText=await base.text();
   const p75Text=p75?await p75.text():'';
@@ -62,7 +63,8 @@ async function patchedApp(req){
   const p756Text=p756?await p756.text():'';
   const p757Text=p757?await p757.text():'';
   const p758Text=p758?await p758.text():'';
-  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text;
+  const p759Text=p759?await p759.text():'';
+  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text;
   const out=new Response(body,{status:200,headers:{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'}});
   caches.open(CACHE).then(c=>c.put(req,out.clone())).catch(()=>{});
   return out;
