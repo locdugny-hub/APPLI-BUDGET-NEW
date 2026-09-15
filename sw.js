@@ -1,12 +1,12 @@
-/* Service worker v7.5.17 : réseau d'abord, cache hors-ligne.
+/* Service worker v7.5.18 : réseau d'abord, cache hors-ligne.
    Charge dashboard, réparation des mois, auth fluide, dashboard premium cash,
    synchronisation automatique des GID Google, filtres déroulants, layout final,
    optimisation iPhone 12 Pro Max, header mobile non sticky, Face ID stabilisé,
-   filtres Dashboard mobiles uniformisés, édition/suppression des montants mensuels
-   et multi-sélection des mois pour les analyses Dashboard.
+   filtres Dashboard mobiles uniformisés, multi-sélection des mois,
+   édition fiable des montants/commentaires et suppression sécurisée des saisies.
    Important : aucune navigation forcée à l'activation afin de ne pas interrompre Face ID/WebAuthn. */
-const CACHE = 'budget-saisie-v7-5-17';
-const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './patch-v7512.js', './patch-v7513.js', './patch-v7515.js', './patch-v7516.js', './patch-v7517.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
+const CACHE = 'budget-saisie-v7-5-18';
+const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './patch-v7512.js', './patch-v7513.js', './patch-v7515.js', './patch-v7516.js', './patch-v7517.js', './patch-v7518.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -43,7 +43,7 @@ async function patchedApp(req){
   catch(_){ base=await caches.match(req); }
   if(!base) throw new Error('app.js indisponible');
 
-  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511,p7512,p7513,p7515,p7516,p7517]=await Promise.all([
+  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511,p7512,p7513,p7515,p7516,p7517,p7518]=await Promise.all([
     getPatch('./patch-v75.js'),
     getPatch('./patch-v751.js'),
     getPatch('./patch-v753.js'),
@@ -59,7 +59,8 @@ async function patchedApp(req){
     getPatch('./patch-v7513.js'),
     getPatch('./patch-v7515.js'),
     getPatch('./patch-v7516.js'),
-    getPatch('./patch-v7517.js')
+    getPatch('./patch-v7517.js'),
+    getPatch('./patch-v7518.js')
   ]);
   const baseText=await base.text();
   const p75Text=p75?await p75.text():'';
@@ -78,7 +79,8 @@ async function patchedApp(req){
   const p7515Text=p7515?await p7515.text():'';
   const p7516Text=p7516?await p7516.text():'';
   const p7517Text=p7517?await p7517.text():'';
-  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text+'\n\n/* === Budget v7.5.10 compact mobile header === */\n'+p7510Text+'\n\n/* === Budget v7.5.11 iOS sticky safe-area fix === */\n'+p7511Text+'\n\n/* === Budget v7.5.12 non-sticky header + Face ID recovery === */\n'+p7512Text+'\n\n/* === Budget v7.5.13 Face ID cold-start fix === */\n'+p7513Text+'\n\n/* === Budget v7.5.15 mobile filter bottom sheets === */\n'+p7515Text+'\n\n/* === Budget v7.5.16 edit/delete monthly amounts === */\n'+p7516Text+'\n\n/* === Budget v7.5.17 multi-month dashboard filtering === */\n'+p7517Text;
+  const p7518Text=p7518?await p7518.text():'';
+  const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text+'\n\n/* === Budget v7.5.10 compact mobile header === */\n'+p7510Text+'\n\n/* === Budget v7.5.11 iOS sticky safe-area fix === */\n'+p7511Text+'\n\n/* === Budget v7.5.12 non-sticky header + Face ID recovery === */\n'+p7512Text+'\n\n/* === Budget v7.5.13 Face ID cold-start fix === */\n'+p7513Text+'\n\n/* === Budget v7.5.15 mobile filter bottom sheets === */\n'+p7515Text+'\n\n/* === Budget v7.5.16 edit/delete monthly amounts === */\n'+p7516Text+'\n\n/* === Budget v7.5.17 multi-month dashboard filtering === */\n'+p7517Text+'\n\n/* === Budget v7.5.18 robust transaction editor === */\n'+p7518Text;
   const out=new Response(body,{status:200,headers:{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'}});
   caches.open(CACHE).then(c=>c.put(req,out.clone())).catch(()=>{});
   return out;
