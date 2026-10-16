@@ -155,6 +155,11 @@
     cache.set(k,{at:now,data});
     return data;
   }
+  async function readNumber7524(cell){
+    const d=await valuesGet(cell,'UNFORMATTED_VALUE');
+    return (d.values&&d.values[0]&&d.values[0][0]!=null)?Number(d.values[0][0])||0:0;
+  }
+
   async function fullJournalRows(){
     await ensureJournal();
     const d=await valuesGet(`'${JOURNAL}'!A2:Q`,'UNFORMATTED_VALUE');
@@ -443,7 +448,7 @@
       const writes=[];
       for(const label of labels){
         const inf=await info(tab,label);
-        const current=await readCellNumber(inf.cell);
+        const current=await readNumber7524(inf.cell);
         const tracked=rows.map((r,i)=>({r:r||[],sheetRow:i+2}))
           .filter(x=>x.r.some(v=>v!==''&&v!=null))
           .filter(x=>String(x.r[2]||'')===tab&&String(x.r[3]||'')===label);
