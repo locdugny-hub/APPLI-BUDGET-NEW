@@ -224,7 +224,7 @@
       labels.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;o.selected=l===item.label;g.appendChild(o);});
       sel.appendChild(g);
     });
-    sel.disabled=item.kind!=='app';
+    sel.disabled=!(item.kind==='app'||item.historicalNumeric===true);
   }
   async function open(item){
     state={...item};
