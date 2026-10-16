@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.21
+/* Budget PWA v7.5.22
    - Transaction ledger stable: no fragile arithmetic formulas for App entries
    - Move an App expense directly to another category without delete/re-add
    - Preserve date, amount, note and individual detail in Saisies App
@@ -218,11 +218,23 @@
           const srcNew=src.total-oldAmount;
           const dstNew=dst.total+amount;
           const rowVals=buildJournalRow({oldRow,dateISO,tab:saved.tab,label:targetLabel,amount,note,cell:dst.cell,col:dst.col});
-          await valuesBatch([
-            {range:src.cell,values:[[Math.abs(srcNew)<0.005?0:srcNew]]},
-            {range:dst.cell,values:[[dstNew]]},
-            {range:`'${JOURNAL}'!A${saved.journalRow}:Q${saved.journalRow}`,values:[rowVals]}
-          ]);
+
+          await valuesUpdate(dst.cell,dstNew);
+          const dstCheck=await readCellNumber(dst.cell);
+          if(Math.abs(dstCheck-dstNew)>0.01) throw new Error('La nouvelle categorie n a pas recu la depense.');
+
+          await valuesUpdateRow(`'${JOURNAL}'!A${saved.journalRow}:Q${saved.journalRow}`,rowVals,'USER_ENTERED');
+          const journalCheck=await freshJournalRow(saved.journalRow);
+          if(String(journalCheck[3]||'')!==targetLabel || Math.abs((Number(journalCheck[4])||0)-amount)>0.01){
+            throw new Error('La cible a recu la depense mais le journal n a pas ete mis a jour. La source est conservee.');
+          }
+
+          await valuesUpdate(src.cell,Math.abs(srcNew)<0.005?0:srcNew);
+          const srcCheck=await readCellNumber(src.cell);
+          if(Math.abs(srcCheck-(Math.abs(srcNew)<0.005?0:srcNew))>0.01){
+            throw new Error('La cible est correcte mais l ancienne categorie n a pas pu etre diminuee.');
+          }
+
           detailCache7521.delete(detailKey(targetLabel,saved.tab));
         }
       }else{
