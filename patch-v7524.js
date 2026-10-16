@@ -231,7 +231,8 @@
     const ov=ensureEditor();
     ov.querySelector('.v7524-title').textContent=item.label;
     ov.querySelector('.v7524-sub').textContent=item.tab;
-    ov.querySelector('.v7524-input').value=String(Math.abs(Number(item.amount)||0)).replace('.',',');
+    const shown=Math.round(Math.abs(Number(item.amount)||0)*100)/100;
+    ov.querySelector('.v7524-input').value=shown.toFixed(2).replace('.',',');
     ov.querySelector('.v7524-note').value=item.note||'';
     await fillSelect(ov.querySelector('.v7524-select'),item);
     ov.querySelector('.v7524-info').textContent=item.kind==='app'
@@ -377,7 +378,8 @@
       m.historical.forEach((h,i)=>{
         let amount=h.num!=null?Math.abs(Number(h.num)||0):0;
         if(h.num==null&&m.tracked.length===0&&m.historical.length===1) amount=Math.abs(m.total);
-        items.push({kind:'historical',label,tab,col:m.col,amount,raw:h.raw,note:'',hIndex:i});
+        amount=Math.round(amount*100)/100;
+        items.push({kind:'historical',label,tab,col:m.col,amount,raw:h.raw,note:'',hIndex:i,historicalNumeric:h.num!=null});
       });
       m.tracked.forEach(x=>items.push({
         kind:'app',label,tab,col:m.col,amount:Number(x.r[4])||0,
