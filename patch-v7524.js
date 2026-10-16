@@ -127,7 +127,7 @@
       };
     }
     const trackedTotal=tracked.reduce((s,x)=>s+(Number(x.r[4])||0),0);
-    const residual=Number(total)||0-trackedTotal;
+    const residual=(Number(total)||0)-trackedTotal;
     return {
       historical:Math.abs(residual)>=0.005?[{raw:null,num:Math.abs(residual),sign:residual<0?-1:1,aggregate:true}]:[],
       matched:new Map()
