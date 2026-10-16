@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.25
+/* Budget PWA v7.5.26
    - Restaure le detail des calculs historiques dans les categories
    - Une ligne Saisies App = une operation individuelle, meme si plusieurs montants sont identiques
    - Les cellules mensuelles sont reconstruites proprement sous forme de somme lisible (=15+15)
@@ -393,7 +393,7 @@
         let amount=h.num!=null?Math.abs(Number(h.num)||0):0;
         if(h.num==null&&m.tracked.length===0&&m.historical.length===1) amount=Math.abs(m.total);
         amount=Math.round(amount*100)/100;
-        items.push({kind:'historical',label,tab,col:m.col,amount,raw:h.raw,note:'',hIndex:i,historicalNumeric:h.num!=null});
+        items.push({kind:'historical',label,tab,col:m.col,amount,raw:h.raw,note:'',hIndex:i,historicalNumeric:(h.num!=null&&!h.aggregate&&h.raw!=null)});
       });
       m.tracked.forEach(x=>items.push({
         kind:'app',label,tab,col:m.col,amount:Number(x.r[4])||0,
@@ -432,9 +432,9 @@
     return {tab,cell:m.cell,newTotal};
   };
 
-  async function repairNovemberDetailedCells(){
-    const tab='Novembre 2026';
-    const labels=['🛒 Courses','🍽️ Restaurants'];
+  async function repairOctoberDetailedCells(){
+    const tab='Octobre 2026';
+    const labels=['📦 Frais divers','🍽️ Restaurants','🛒 Courses'];
     try{
       await loadMeta();
       if(!monthTabs.some(t=>t.title===tab)) return;
@@ -461,14 +461,14 @@
         labels.forEach(label=>clear(label,tab));
       }
     }catch(e){
-      console.warn('Repair Novembre 2026 detail skipped',e);
+      console.warn('Repair Octobre 2026 detail skipped',e);
     }
   }
 
   const previousOnAuthed7524=onAuthed;
   onAuthed=async function(){
     await previousOnAuthed7524();
-    setTimeout(()=>repairNovemberDetailedCells(),1800);
+    setTimeout(()=>repairOctoberDetailedCells(),1800);
   };
 
 })();
