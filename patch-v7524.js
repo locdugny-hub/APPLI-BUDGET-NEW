@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.24
+/* Budget PWA v7.5.25
    - Restaure le detail des calculs historiques dans les categories
    - Une ligne Saisies App = une operation individuelle, meme si plusieurs montants sont identiques
    - Les cellules mensuelles sont reconstruites proprement sous forme de somme lisible (=15+15)
@@ -415,4 +415,44 @@
     const newTotal=(t.values&&t.values[0]&&t.values[0][0]!=null)?Number(t.values[0][0]):null;
     return {tab,cell:m.cell,newTotal};
   };
+
+  async function repairNovemberDetailedCells(){
+    const tab='Novembre 2026';
+    const labels=['🛒 Courses','🍽️ Restaurants'];
+    try{
+      await loadMeta();
+      if(!monthTabs.some(t=>t.title===tab)) return;
+      const rows=await fullJournalRows();
+      const sep=await getDecSep();
+      const writes=[];
+      for(const label of labels){
+        const inf=await info(tab,label);
+        const current=await readCellNumber(inf.cell);
+        const tracked=rows.map((r,i)=>({r:r||[],sheetRow:i+2}))
+          .filter(x=>x.r.some(v=>v!==''&&v!=null))
+          .filter(x=>String(x.r[2]||'')===tab&&String(x.r[3]||'')===label);
+        if(!tracked.length) continue;
+        const sum=tracked.reduce((s,x)=>s+(Number(x.r[4])||0),0);
+        let residual=current-sum;
+        if(Math.abs(residual)<0.005) residual=0;
+        const parts=[];
+        if(residual!==0) parts.push({raw:nraw(residual,sep),sign:residual<0?-1:1});
+        const appRows=tracked.map(x=>({amount:Number(x.r[4])||0}));
+        writes.push({range:inf.cell,values:[[formula(parts,appRows,sep)]]});
+      }
+      if(writes.length){
+        await valuesBatch(writes);
+        labels.forEach(label=>clear(label,tab));
+      }
+    }catch(e){
+      console.warn('Repair Novembre 2026 detail skipped',e);
+    }
+  }
+
+  const previousOnAuthed7524=onAuthed;
+  onAuthed=async function(){
+    await previousOnAuthed7524();
+    setTimeout(()=>repairNovemberDetailedCells(),1800);
+  };
+
 })();
