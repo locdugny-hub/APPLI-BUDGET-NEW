@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.22
+/* Budget PWA v7.5.23
    - Transaction ledger stable: no fragile arithmetic formulas for App entries
    - Move an App expense directly to another category without delete/re-add
    - Preserve date, amount, note and individual detail in Saisies App
@@ -107,7 +107,10 @@
     const [total,jRows]=await Promise.all([readCellNumber(info.cell),getJournal()]);
     const tracked=(jRows||[]).map((r,i)=>({r:r||[],sheetRow:i+2}))
       .filter(x=>x.r.some(v=>v!==''&&v!=null))
-      .filter(x=>String(x.r[2]||'')===tab&&String(x.r[3]||'')===label&&(!x.r[6]||String(x.r[6])===info.cell));
+      .filter(x=>String(x.r[2]||'')===tab&&String(x.r[3]||'')===label);
+    /* La colonne "Cellule" du journal n'est plus un critere d'identite :
+       l'insertion de lignes dans le Google Sheet peut faire passer C55 a C56.
+       L'identite stable est Mois + Categorie + numero de ligne Saisies App. */
     const trackedTotal=tracked.reduce((s,x)=>s+(Number(x.r[4])||0),0);
     let historical=total-trackedTotal;
     if(Math.abs(historical)<0.005) historical=0;
