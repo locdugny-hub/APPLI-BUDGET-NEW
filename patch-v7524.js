@@ -288,18 +288,32 @@
           clear(target,s.tab);
         }
       }else{
-        const m=await model(s.label,s.tab,true);
-        const parts=historicalWithout(m,s);
+        const src=await model(s.label,s.tab,true);
+        const srcParts=historicalWithout(src,s);
         const rows=await fullJournalRows();
         const jr=freeRow(rows);
         const dateISO=presetISOFor(s.tab);
-        const apps=trackedList(m,null,{amount});
-        const next=formula(parts,apps,m.sep);
-        const rowVals=journalRow({dateISO,tab:s.tab,label:s.label,amount,note,cell:m.cell,col:m.col});
-        await valuesBatch([
-          {range:m.cell,values:[[next]]},
-          {range:`'${JOURNAL}'!A${jr}:Q${jr}`,values:[rowVals]}
-        ]);
+        if(target===s.label){
+          const apps=trackedList(src,null,{amount});
+          const next=formula(srcParts,apps,src.sep);
+          const rowVals=journalRow({dateISO,tab:s.tab,label:s.label,amount,note,cell:src.cell,col:src.col});
+          await valuesBatch([
+            {range:src.cell,values:[[next]]},
+            {range:`'${JOURNAL}'!A${jr}:Q${jr}`,values:[rowVals]}
+          ]);
+        }else{
+          if(!s.historicalNumeric) throw new Error('Cette formule historique ne peut pas etre deplacee individuellement.');
+          const dst=await model(target,s.tab,true);
+          const srcNext=formula(srcParts,trackedList(src,null,null),src.sep);
+          const dstNext=formula(dst.historical,trackedList(dst,null,{amount}),dst.sep);
+          const rowVals=journalRow({dateISO,tab:s.tab,label:target,amount,note,cell:dst.cell,col:dst.col});
+          await valuesBatch([
+            {range:src.cell,values:[[srcNext]]},
+            {range:dst.cell,values:[[dstNext]]},
+            {range:`'${JOURNAL}'!A${jr}:Q${jr}`,values:[rowVals]}
+          ]);
+          clear(target,s.tab);
+        }
       }
       clear(s.label,s.tab);
       closeEditor();
