@@ -1,4 +1,4 @@
-/* Service worker v7.5.26 : réseau d'abord, cache hors-ligne.
+/* Service worker v7.5.27 : réseau d'abord, cache hors-ligne.
    Charge dashboard, réparation des mois, auth fluide, dashboard premium cash,
    synchronisation automatique des GID Google, filtres déroulants, layout final,
    optimisation iPhone 12 Pro Max, header mobile non sticky, Face ID stabilisé,
@@ -6,7 +6,7 @@
    édition universelle des catégories et transactions stables, détail individuel préservé et déplacement direct,
    plus la catégorie récurrente Accompte impots foncier à partir de novembre 2026.
    Important : aucune navigation forcée à l'activation afin de ne pas interrompre Face ID/WebAuthn. */
-const CACHE = 'budget-saisie-v7-5-26';
+const CACHE = 'budget-saisie-v7-5-27';
 const SHELL = ['./', './index.html', './app.js', './patch-v75.js', './patch-v751.js', './patch-v753.js', './patch-v754.js', './patch-v755.js', './patch-v756.js', './patch-v757.js', './patch-v758.js', './patch-v759.js', './patch-v7510.js', './patch-v7511.js', './patch-v7512.js', './patch-v7513.js', './patch-v7515.js', './patch-v7516.js', './patch-v7517.js', './patch-v7518.js', './patch-v7520.js', './patch-v7521.js', './patch-v7522.js', './patch-v7524.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 
 self.addEventListener('install', (e)=>{
