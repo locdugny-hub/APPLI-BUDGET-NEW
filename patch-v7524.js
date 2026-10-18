@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.28
+/* Budget PWA v7.5.29
    - Restaure le detail des calculs historiques dans les categories
    - Une ligne Saisies App = une operation individuelle, meme si plusieurs montants sont identiques
    - Les cellules mensuelles sont reconstruites proprement sous forme de somme lisible (=15+15)
@@ -141,7 +141,7 @@
     const [fD,vD,jRows,sep]=await Promise.all([
       valuesGet(inf.cell,'FORMULA'),
       valuesGet(inf.cell,'UNFORMATTED_VALUE'),
-      getJournal(),
+      fullJournalRows(),
       getDecSep()
     ]);
     const raw=(fD.values&&fD.values[0]&&fD.values[0][0]!==undefined)?fD.values[0][0]:'';
@@ -190,6 +190,21 @@
       a.sense,a.tag,a.nature,a.rec,a.year,a.month,a.signed*amount,a.source,
       oldRow&&oldRow[16]?oldRow[16]:''
     ];
+  }
+
+  function journalDateISO(v,fallbackTab){
+    if(typeof v==='number'&&Number.isFinite(v)){
+      const ms=Math.round((v-25569)*86400000);
+      const d=new Date(ms);
+      if(!Number.isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    }
+    const s=String(v==null?'':v).trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    return presetISOFor(fallbackTab);
+  }
+  function displayJournalDate(v,tab){
+    const iso=journalDateISO(v,tab);
+    return frDate(iso);
   }
 
   function ensureEditor(){
@@ -273,7 +288,7 @@
         const src=await model(s.label,s.tab,true);
         const oldRow=await freshRow(s.journalRow);
         if(!oldRow.some(v=>v!==''&&v!=null)) throw new Error('Cette operation n existe plus dans Saisies App.');
-        const dateISO=String(oldRow[1]||s.date||presetISOFor(s.tab));
+        const dateISO=journalDateISO(oldRow[1]||s.date,s.tab);
 
         if(target===s.label){
           const apps=trackedList(src,s.journalRow,{amount});
@@ -371,7 +386,7 @@
   function row(hist,item){
     const r=el('div','ent-row'), left=el('div');
     if(item.kind==='app'){
-      left.appendChild(el('div','el',frDate(item.date)));
+      left.appendChild(el('div','el',displayJournalDate(item.date,item.tab)));
       if(item.note) left.appendChild(el('div','em',item.note));
       left.appendChild(el('div','v7524-src','Saisie App · operation individuelle'));
     }else{
