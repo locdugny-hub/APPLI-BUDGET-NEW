@@ -1,4 +1,4 @@
-/* Budget PWA v7.5.27
+/* Budget PWA v7.5.28
    - Restaure le detail des calculs historiques dans les categories
    - Une ligne Saisies App = une operation individuelle, meme si plusieurs montants sont identiques
    - Les cellules mensuelles sont reconstruites proprement sous forme de somme lisible (=15+15)
@@ -148,7 +148,12 @@
     const total=(vD.values&&vD.values[0]&&vD.values[0][0]!=null)?Number(vD.values[0][0])||0:0;
     const tracked=(jRows||[]).map((r,i)=>({r:r||[],sheetRow:i+2}))
       .filter(x=>x.r.some(v=>v!==''&&v!=null))
-      .filter(x=>_norm(String(x.r[2]||''))===_norm(tab)&&String(x.r[3]||'')===label);
+      .filter(x=>{
+        const p=parseMonthTitle(tab);
+        const monthMatches=_norm(String(x.r[2]||''))===_norm(tab)
+          || (p&&Number(x.r[12])===p.y&&Number(x.r[13])===p.m+1);
+        return monthMatches&&String(x.r[3]||'')===label;
+      });
     const terms=parseDetail(raw,sep);
     const m=matchFormulaTerms(terms,tracked,total);
     const data={label,tab,...inf,raw,total,sep,tracked,historical:m.historical};
