@@ -2,8 +2,8 @@ const crypto = require('crypto');
 
 function config() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  const spreadsheetId = process.env.BUDGET_SHEET_ID;
-  if (!raw || !spreadsheetId) throw new Error('Backend Google non configuré.');
+  const spreadsheetId = process.env.BUDGET_SHEET_ID || '1wROfa9JN1467IjJJaRjc-qn6rymFygIgfVb4AFWPgGU';
+  if (!raw) throw new Error('Backend Google non configuré.');
   const sa = JSON.parse(raw);
   if (!sa.client_email || !sa.private_key || !sa.token_uri) throw new Error('Compte de service invalide.');
   return { sa, spreadsheetId };
