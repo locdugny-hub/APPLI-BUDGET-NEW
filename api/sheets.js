@@ -12,7 +12,7 @@ module.exports = async function handler(req, res) {
     const input = req.body || {};
     const path = String(input.path || '');
     const method = String(input.method || 'GET').toUpperCase();
-    if (!path.startsWith('/') && path !== '') return res.status(400).json({ error: 'Invalid path' });
+    if (!(path === '' || path.startsWith('/') || path === ':batchUpdate')) return res.status(400).json({ error: 'Invalid path' });
     if (!['GET','POST','PUT'].includes(method)) return res.status(400).json({ error: 'Invalid method' });
 
     const base = 'https://sheets.googleapis.com/v4/spreadsheets/' + encodeURIComponent(spreadsheetId);
