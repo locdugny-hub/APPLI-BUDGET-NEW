@@ -44,7 +44,7 @@ async function patchedApp(req){
   catch(_){ base=await caches.match(req); }
   if(!base) throw new Error('app.js indisponible');
 
-  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511,p7512,p7513,p7515,p7516,p7517,p7518,p7520,p7521,p7522,p7524,p7530,p7531]=await Promise.all([
+  const [p75,p752,p753,p754,p755,p756,p757,p758,p759,p7510,p7511,p7512,p7513,p7515,p7516,p7517,p7518,p7520,p7521,p7522,p7524,p7530]=await Promise.all([
     getPatch('./patch-v75.js'),
     getPatch('./patch-v751.js'),
     getPatch('./patch-v753.js'),
@@ -91,7 +91,6 @@ async function patchedApp(req){
   const p7522Text=p7522?await p7522.text():'';
   const p7524Text=p7524?await p7524.text():'';
   const p7530Text=p7530?await p7530.text():'';
-  const p7531Text=p7531?await p7531.text():'';
   const body=baseText+'\n\n/* === Budget v7.5 dashboard === */\n'+p75Text+'\n\n/* === Budget v7.5.2 month repair === */\n'+p752Text+'\n\n/* === Budget v7.5.3 auth + dashboard polish === */\n'+p753Text+'\n\n/* === Budget v7.5.4 premium cash dashboard === */\n'+p754Text+'\n\n/* === Budget v7.5.5 Google Sheet month GID sync === */\n'+p755Text+'\n\n/* === Budget v7.5.6 premium dropdown filters === */\n'+p756Text+'\n\n/* === Budget v7.5.7 final dashboard layout === */\n'+p757Text+'\n\n/* === Budget v7.5.8 iPhone 12 Pro Max optimization === */\n'+p758Text+'\n\n/* === Budget v7.5.9 mobile visual tuning === */\n'+p759Text+'\n\n/* === Budget v7.5.10 compact mobile header === */\n'+p7510Text+'\n\n/* === Budget v7.5.11 iOS sticky safe-area fix === */\n'+p7511Text+'\n\n/* === Budget v7.5.12 non-sticky header + Face ID recovery === */\n'+p7512Text+'\n\n/* === Budget v7.5.13 Face ID cold-start fix === */\n'+p7513Text+'\n\n/* === Budget v7.5.15 mobile filter bottom sheets === */\n'+p7515Text+'\n\n/* === Budget v7.5.16 edit/delete monthly amounts === */\n'+p7516Text+'\n\n/* === Budget v7.5.17 multi-month dashboard filtering === */\n'+p7517Text+'\n\n/* === Budget v7.5.18 robust transaction editor === */\n'+p7518Text+'\n\n/* === Budget v7.5.20 universal category editor === */\n'+p7520Text+'\n\n/* === Budget v7.5.21 transactional category move + recurring tax advance === */\n'+p7521Text+'\n\n/* === Budget v7.5.22 manual month creation === */\n'+p7522Text+'\n\n/* === Budget v7.5.24 formula detail + individual transactions + November detail repair === */\n'+p7524Text+'\n\n/* === Budget v7.5.30 persistent backend session === */\n'+p7530Text;
   const out=new Response(body,{status:200,headers:{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'}});
   caches.open(CACHE).then(c=>c.put(req,out.clone())).catch(()=>{});
