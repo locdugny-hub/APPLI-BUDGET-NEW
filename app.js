@@ -581,7 +581,7 @@ async function deleteEntry(item){
       .filter((v,i,a)=>a.indexOf(v)===i);
     let f=raw, removed=false;
     for(const value of candidates){
-      const escaped=value.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&');
+      const escaped=value.replace(/\./g,'\\.');
       const patterns=[
         new RegExp('\\+'+escaped+'$'),
         new RegExp('^='+escaped+'$'),
