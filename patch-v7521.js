@@ -289,18 +289,29 @@
         if(!oldRow.some(v=>v!==''&&v!=null)) throw new Error('Cette saisie n’existe plus dans Saisies App.');
         const oldAmount=Number(oldRow[4])||Number(saved.amount)||0;
         expected=src.total-oldAmount;
-        await valuesBatch([
-          {range:src.cell,values:[[Math.abs(expected)<0.005?0:expected]]},
-          {range:`'${JOURNAL}'!A${saved.journalRow}:Q${saved.journalRow}`,values:[new Array(17).fill('')]}
-        ]);
+        if(Math.abs(expected)<0.005){
+          await valuesClear(src.cell);
+          await valuesUpdateRow(`'${JOURNAL}'!A${saved.journalRow}:Q${saved.journalRow}`,new Array(17).fill(''),'RAW');
+        }else{
+          await valuesBatch([
+            {range:src.cell,values:[[expected]]},
+            {range:`'${JOURNAL}'!A${saved.journalRow}:Q${saved.journalRow}`,values:[new Array(17).fill('')]}
+          ]);
+        }
       }else{
         expected=src.trackedTotal;
-        await valuesUpdate(src.cell,expected);
+        if(Math.abs(expected)<0.005) await valuesClear(src.cell);
+        else await valuesUpdate(src.cell,expected);
       }
 
-      const check=await readCellNumber(src.cell);
-      const target=Math.abs(expected)<0.005?0:expected;
-      if(Math.abs(check-target)>0.01) throw new Error('La suppression n’a pas ete confirmee par Google Sheets.');
+      if(Math.abs(expected)<0.005){
+        const verify=await valuesGet(src.cell,'FORMULA');
+        const v=(verify.values&&verify.values[0]&&verify.values[0][0]!==undefined)?verify.values[0][0]:'';
+        if(v!==''&&v!==null&&v!==undefined) throw new Error('La cellule Google Sheets n’a pas ete videe.');
+      }else{
+        const check=await readCellNumber(src.cell);
+        if(Math.abs(check-expected)>0.01) throw new Error('La suppression n’a pas ete confirmee par Google Sheets.');
+      }
 
       clearCaches(saved.label,saved.tab);
       closeEditor();
