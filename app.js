@@ -549,23 +549,27 @@ async function ensureJournal(){
 /* ---------- Suppression d'une saisie (retire le montant + la ligne du journal) ---------- */
 async function deleteEntry(item){
   const sep=await getDecSep();
-  const n=Number(item.amt);
+  const target=Number(item.amt);
   const cur=await valuesGet(item.cell,'FORMULA');
   const raw=(cur.values&&cur.values[0]&&cur.values[0][0]!==undefined)?String(cur.values[0][0]).trim():'';
 
   const parsed=parseFormulaTerms(raw,sep);
   let next=null;
+
   if(parsed.additive){
     let removed=false;
     const kept=[];
     for(const t of parsed.terms){
-      const value=(Number(t.num)||0)*(t.sign||1);
-      if(!removed && Math.abs(value-n)<0.005){ removed=true; continue; }
+      if(t.num==null) continue;
+      const value=Number(t.num)*(t.sign||1);
+      if(!removed && Math.abs(value-target)<0.005){ removed=true; continue; }
       kept.push(value);
     }
     if(removed){
-      if(!kept.length) next='';
-      else {
+      if(kept.length===0){
+        // Important: clear the actual cell in Google Sheets, do not write =0 or "".
+        next='';
+      }else{
         const fmt=v=>String(Math.abs(v)).replace('.',sep);
         next='='+kept.map((v,i)=>{
           const abs=fmt(v);
@@ -577,32 +581,30 @@ async function deleteEntry(item){
   }
 
   if(next===null){
-    const candidates=[String(n).replace('.',sep), n.toFixed(2).replace('.',sep)]
+    const normalized=raw.replace(/^=\((.*)\)$/,'=$1');
+    const candidates=[String(target).replace('.',sep),target.toFixed(2).replace('.',sep)]
       .filter((v,i,a)=>a.indexOf(v)===i);
-    let f=raw, removed=false;
+    let f=normalized, removed=false;
     for(const value of candidates){
       const escaped=value.replace(/\./g,'\\.');
-      const patterns=[
-        new RegExp('\\+'+escaped+'$'),
-        new RegExp('^='+escaped+'$'),
-        new RegExp('^=\\('+escaped+'\\)$')
-      ];
-      for(const re of patterns){
-        if(re.test(f)){
-          if(re.source.startsWith('^=')) f='';
-          else f=f.replace(re,'');
-          removed=true;
-          break;
-        }
-      }
-      if(removed) break;
+      if(new RegExp('^='+escaped+'$').test(f)){ f=''; removed=true; break; }
+      if(new RegExp('\\+'+escaped+'$').test(f)){ f=f.replace(new RegExp('\\+'+escaped+'$'),''); removed=true; break; }
     }
     if(!removed) throw new Error('Montant introuvable dans la cellule : suppression annulée pour protéger le Google Sheet.');
     next=f;
   }
 
-  if(next==='') await valuesClear(item.cell);
-  else await valuesUpdate(item.cell,next);
+  if(next===''){
+    await valuesClear(item.cell);
+    // Verify the clear really produced an empty cell, not a numeric zero/formula.
+    const verify=await valuesGet(item.cell,'FORMULA');
+    const vv=(verify.values&&verify.values[0]&&verify.values[0][0]!==undefined)?verify.values[0][0]:'';
+    if(vv!==''&&vv!==null&&vv!==undefined){
+      throw new Error('La cellule Google Sheets n\'a pas été vidée correctement.');
+    }
+  }else{
+    await valuesUpdate(item.cell,next);
+  }
 
   await deleteRowAt(JOURNAL,item.sheetRow);
   const mm=String(item.cell).match(/^'(.+)'!/);
@@ -740,7 +742,7 @@ function parseLocaleNum(t,sep){
    (SUM(...), références, produits…) sont conservés tels quels : on ne casse rien. */
 function parseFormulaTerms(f,sep){
   const s=String(f==null?'':f).trim();
-  if(s==='') return {terms:[],additive:true};
+  if(s===''||s==='=0'||s==='0') return {terms:[],additive:true};
   if(!s.startsWith('=')){
     const n=parseLocaleNum(s,sep);
     return {terms:[{raw:s,num:n,sign:1}],additive:n!=null};
