@@ -630,18 +630,14 @@ async function syncGlobalSummaryCategories(){
     // Relire après chaque insertion: toutes les adresses de lignes peuvent bouger.
     const d=await valuesGet(`'${SYNTH}'!A1:A200`,'UNFORMATTED_VALUE');
     const labels=(d.values||[]).map(r=>String(r[0]||''));
-    const heading=labels.findIndex(v=>v.toUpperCase().includes(secName.toUpperCase())&&
-      !v.toLowerCase().startsWith('sous-total')&&
-      (v===v.toUpperCase()||v.trim().startsWith('🛒')));
-    // Les rubriques existantes ont des sous-totaux immédiatement après leurs postes.
-    if(heading<0) continue;
-    const subtotal=labels.findIndex((v,i)=>i>heading&&v.toLowerCase().includes('sous-total '+secName.toLowerCase()));
-    if(subtotal<0) continue;
-    const existing=new Set(labels.slice(heading+1,subtotal).map(v=>v.trim()));
-    const missing=target.filter(v=>!existing.has(v.trim()));
+    const subtotal=labels.findIndex(v=>v.toLowerCase().includes('sous-total '+secName.toLowerCase()));
+    if(subtotal<1) continue;
+    // Vérifier tout le bloc visible: l'en-tête Vie courante peut être une formule.
+    const existing=new Set(labels.map(v=>v.trim()));
+    const missing=[...new Set(target)].filter(v=>!existing.has(v.trim()));
     if(!missing.length) continue;
     const n=missing.length,at=subtotal;
-    const from=Math.max(heading+1,subtotal-1);
+    const from=subtotal-1;
     const data=[];
     for(let i=0;i<n;i++){
       const R=at+1+i,label=missing[i];
@@ -654,7 +650,7 @@ async function syncGlobalSummaryCategories(){
       values.push({userEnteredValue:{formulaValue:`=SUM(B${R}:AK${R})`}});
       values.push({userEnteredValue:{formulaValue:`=IFERROR(AL${R}/COUNTIF($B$5:$AK$5${S}"<>")${S}0)`}});
       // Pourcentages du détail des dépenses.
-      values.push({userEnteredValue:{formulaValue:`=IFERROR(AL${R}/$AL$89${S}0)`}});
+      values.push({userEnteredValue:{formulaValue:`=IFERROR(AL${R}/INDEX($AL:$AL${S}MATCH("TOTAL DÉPENSES"${S}$A:$A${S}0))${S}0)`}});
       data.push({values});
     }
     await api(':batchUpdate',{method:'POST',body:{requests:[
