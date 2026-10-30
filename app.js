@@ -51,11 +51,11 @@ function dashboardMonthTabs(){ const now=new Date(); return monthTabs.filter(t=>
 /* Liste de base (fallback hors-ligne) — la grille réelle est lue dans l'onglet du mois. */
 const SECTIONS=[
   ['💰 Revenus','B',['💰 Salaire (M-1)','🏠 Loyer perçu Bondy','🏠 Loyer perçu Dugny','🚕 Revenus VTC','💰 Revenus divers']],
-  ['🏠 Logement','C',['🏠 Location Romainville','💼 Charge copropriété Bondy','💼 Charge copropriété Dugny','🏛️ Taxe foncière (mensualisée)','🏦 Crédit Bondy','🏦 Crédit Dugny','⚡ Facture Électricité','🔥 Facture Gaz','🔥 Régularisation Gaz','🔧 Entretien chaudière']],
-  ['🚗 Transport','C',['⛽ Essence','🚗 Frais voiture','🚌 Navigo']],
+  ['🏠 Logement','C',['🏠 Location Romainville','💼 Charge copropriété Bondy','💼 Charge copropriété Dugny','🏛️ Taxe foncière (mensualisée)','🏦 Crédit Bondy','🏦 Crédit Dugny','⚡ Facture Électricité','🔥 Facture Gaz','🔥 Régularisation Gaz','🔧 Entretien chaudière','🏠 Maison & équipement','🔨 Entretien & réparations logement','🏘️ Entretien & réparations logements locatifs']],
+  ['🚗 Transport','C',['⛽ Essence','🚗 Frais voiture','🚌 Navigo','🅿️ Parking & stationnement','🛣️ Péages']],
   ['🛡️ Assurances','C',['🚗 Assurance voiture','🏘️ Assurance Dugny','🏘️ Assurance Bondy','📄 Assurance emprunteur Bondy','📄 Assurance emprunteur Dugny','🏡 Assurance habitation Romainville','🛡️ Protection Boursorama','❤️ Mutuelle Sarah']],
   ['📱 Abonnements','C',['🎵 Apple Music','☁️ Apple Drive / iCloud','🎵 Apple Music (Sarah)','☁️ Apple Drive (Sarah)','🎬 Netflix','🌐 Box Internet','🤖 ChatGPT','📱 Abonnement téléphone','📱 Abonnement téléphone Darris','📱 Abonnement téléphone Sarah','🚕 Uber One','🏋️ Salle de sport']],
-  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo','🛡️ Sécurillon','🏛️ URSSAF']],
+  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo','🛡️ Sécurillon','🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges']],
 ];
 const EXC_HEADER='🎉 Exceptionnel / Ponctuel';
 const SEC_NAMES=SECTIONS.map(s=>s[0]);
@@ -656,6 +656,7 @@ async function loadGrid(){
   if(monthTabs.length&&!monthTabs.some(t=>t.title===tab)) tab=monthTabs[monthTabs.length-1].title; // dernier onglet dispo
   gridTab=tab;
   try{
+    delete structCache[tab];
     const st=await getTabStructure(tab);
     gridSections=st.sections.filter(s=>s.labels.length).map(s=>({name:s.name,labels:s.labels.slice(),col:(s.name===SEC_NAMES[0])?'B':'C'}));
   }catch(_){
@@ -1332,8 +1333,8 @@ function boot(){
   $('#reco-refresh').onclick=renderReco; $('#reco-filter').onchange=renderReco;
   /* Synchro : rafraîchissement auto au retour dans l'app + horloge discrète */
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible'&&accessToken&&Date.now()-lastSync>5*60*1000){
-      metaAt=0; gridSections=null;
+    if(document.visibilityState==='visible'&&accessToken){
+      metaAt=0; invalidateCaches(); gridSections=null;
       const v=activeView();
       if(v==='saisie') renderCategories(); else if(v==='mois') renderMois();
       else if(v==='resume') renderDashboard(); else if(v==='reco') renderReco();
