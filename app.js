@@ -612,6 +612,63 @@ async function deleteEntry(item){
   journalCache=null;
 }
 
+/* ---------- Synchronisation durable de la Synthèse globale ----------
+   Ajoute uniquement les postes absents à la bonne rubrique. Les mois et
+   les montants restent intacts. Les cellules mensuelles sont reconstruites
+   explicitement (un copyPaste normal décalerait Dashboard Data!$F2). */
+async function syncGlobalSummaryCategories(){
+  const m=await loadMeta();
+  if(!m.titles.includes(SYNTH)||!m.titles.includes(REF_CATS)) return 0;
+  const ref=await valuesGet(`'${REF_CATS}'!A2:D200`,'UNFORMATTED_VALUE');
+  const rows=(ref.values||[]).filter(r=>r[3]&&r[1]==='Sortie'&&cleanSection(r[0])!=='Exceptionnel');
+  const S=await argSep(),sid=await sheetIdOf(SYNTH);
+  let inserted=0;
+  const sectionNames=['Logement','Transport','Assurances','Abonnements','Vie courante'];
+  for(const secName of sectionNames){
+    const target=rows.filter(r=>cleanSection(r[0])===secName).map(r=>String(r[3]));
+    if(!target.length) continue;
+    // Relire après chaque insertion: toutes les adresses de lignes peuvent bouger.
+    const d=await valuesGet(`'${SYNTH}'!A1:A200`,'UNFORMATTED_VALUE');
+    const labels=(d.values||[]).map(r=>String(r[0]||''));
+    const heading=labels.findIndex(v=>v.toUpperCase().includes(secName.toUpperCase())&&
+      !v.toLowerCase().startsWith('sous-total')&&
+      (v===v.toUpperCase()||v.trim().startsWith('🛒')));
+    // Les rubriques existantes ont des sous-totaux immédiatement après leurs postes.
+    if(heading<0) continue;
+    const subtotal=labels.findIndex((v,i)=>i>heading&&v.toLowerCase().includes('sous-total '+secName.toLowerCase()));
+    if(subtotal<0) continue;
+    const existing=new Set(labels.slice(heading+1,subtotal).map(v=>v.trim()));
+    const missing=target.filter(v=>!existing.has(v.trim()));
+    if(!missing.length) continue;
+    const n=missing.length,at=subtotal;
+    const from=Math.max(heading+1,subtotal-1);
+    const data=[];
+    for(let i=0;i<n;i++){
+      const R=at+1+i,label=missing[i];
+      const values=[{userEnteredValue:{stringValue:label}}];
+      for(let c=0;c<36;c++){
+        const F=c+2;
+        const formula=`=IF('Dashboard Data'!$F${F}=""${S}""${S}IFERROR(INDEX(INDIRECT("'"&'Dashboard Data'!$F${F}&"'!$C:$C")${S}MATCH($A${R}${S}INDIRECT("'"&'Dashboard Data'!$F${F}&"'!$A:$A")${S}0))${S}0))`;
+        values.push({userEnteredValue:{formulaValue:formula}});
+      }
+      values.push({userEnteredValue:{formulaValue:`=SUM(B${R}:AK${R})`}});
+      values.push({userEnteredValue:{formulaValue:`=IFERROR(AL${R}/COUNTIF($B$5:$AK$5${S}"<>")${S}0)`}});
+      // Pourcentages du détail des dépenses.
+      values.push({userEnteredValue:{formulaValue:`=IFERROR(AL${R}/$AL$89${S}0)`}});
+      data.push({values});
+    }
+    await api(':batchUpdate',{method:'POST',body:{requests:[
+      {insertDimension:{range:{sheetId:sid,dimension:'ROWS',startIndex:at,endIndex:at+n},inheritFromBefore:true}},
+      {copyPaste:{source:{sheetId:sid,startRowIndex:from,endRowIndex:from+1,startColumnIndex:0,endColumnIndex:40},
+        destination:{sheetId:sid,startRowIndex:at,endRowIndex:at+n,startColumnIndex:0,endColumnIndex:40},
+        pasteType:'PASTE_FORMAT'}},
+      {updateCells:{range:{sheetId:sid,startRowIndex:at,endRowIndex:at+n,startColumnIndex:0,endColumnIndex:40},rows:data,fields:'userEnteredValue'}}
+    ]}});
+    inserted+=n;
+  }
+  return inserted;
+}
+
 /* ---------- Ajout d'une catégorie ---------- */
 function monthsFrom(startTab,alsoFuture){
   const all=monthTabs.map(t=>t.title);           // dynamique : tous les onglets existants
@@ -638,6 +695,7 @@ async function addCategory({emoji,name,secIdx,startTab,alsoFuture}){
   if(!added) throw new Error('Catégorie déjà présente (ou section introuvable).');
   await ensureReferenceEntry(secName,type,col,label);
   for(const tab of changed){ try{ await syncMonthCategories(tab); }catch(_){} }
+  try{ await syncGlobalSummaryCategories(); }catch(err){ console.warn('Synthèse globale : synchronisation différée',err); }
   invalidateCaches();
   return {added};
 }
@@ -672,7 +730,7 @@ async function onAuthed(){
   $('#hdr-month').textContent=tabName(new Date());
   invalidateCaches();
   renderQueueBadge(); flushQueue();
-  try{ await loadMeta(); await syncDetectedMonthsToIndexes(); }catch(_){ /* hors-ligne / ancien classeur : démarrage quand même */ }
+  try{ await loadMeta(); await syncDetectedMonthsToIndexes(); await syncGlobalSummaryCategories(); }catch(_){ /* hors-ligne / ancien classeur : démarrage quand même */ }
   updateSyncLine();
   renderCategories();
   if(!pinHash()) showLock('create',()=>{});
