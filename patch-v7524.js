@@ -73,7 +73,7 @@
   }
   function parseDetail(raw,sep){
     let s=String(raw==null?'':raw).trim();
-    if(!s) return [];
+    if(!s||s==='=0'||s==='0') return [];
     if(!s.startsWith('=')){
       const n=parseLocaleNum(s,sep);
       return [{raw:s,num:n,sign:1}];
@@ -100,7 +100,7 @@
       const amount=Number(x.amount!=null?x.amount:(x.r&&x.r[4]))||0;
       all.push({raw:nraw(amount,sep),sign:amount<0?-1:1});
     });
-    if(!all.length) return '=0';
+    if(!all.length) return '';
     return '='+all.map((p,i)=>(i===0?(p.sign<0?'-':''):(p.sign<0?'-':'+'))+p.raw).join('');
   }
   function matchFormulaTerms(terms,tracked,total){
@@ -365,15 +365,21 @@
         if(!row.some(v=>v!==''&&v!=null)) throw new Error('Cette operation n existe plus dans Saisies App.');
         const apps=trackedList(m,s.journalRow,null);
         const next=formula(m.historical,apps,m.sep);
-        await valuesBatch([
-          {range:m.cell,values:[[next]]},
-          {range:`'${JOURNAL}'!A${s.journalRow}:Q${s.journalRow}`,values:[new Array(17).fill('')]}
-        ]);
+        if(next===''){
+          await valuesClear(m.cell);
+          await valuesUpdateRow(`'${JOURNAL}'!A${s.journalRow}:Q${s.journalRow}`,new Array(17).fill(''),'RAW');
+        }else{
+          await valuesBatch([
+            {range:m.cell,values:[[next]]},
+            {range:`'${JOURNAL}'!A${s.journalRow}:Q${s.journalRow}`,values:[new Array(17).fill('')]}
+          ]);
+        }
       }else{
         const parts=historicalWithout(m,s);
         const apps=trackedList(m,null,null);
         const next=formula(parts,apps,m.sep);
-        await valuesUpdate(m.cell,next);
+        if(next==='') await valuesClear(m.cell);
+        else await valuesUpdate(m.cell,next);
       }
       clear(s.label,s.tab);closeEditor();toast('🗑 Operation supprimee');
       await loadCatDetail(s.label,s.tab,++detailSeq);
