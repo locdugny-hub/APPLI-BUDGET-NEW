@@ -55,7 +55,7 @@ const SECTIONS=[
   ['🚗 Transport','C',['⛽ Essence','🚗 Frais voiture','🚌 Navigo','🅿️ Parking & stationnement','🛣️ Péages']],
   ['🛡️ Assurances','C',['🚗 Assurance voiture','🏘️ Assurance Dugny','🏘️ Assurance Bondy','📄 Assurance emprunteur Bondy','📄 Assurance emprunteur Dugny','🏡 Assurance habitation Romainville','🛡️ Protection Boursorama','❤️ Mutuelle Sarah']],
   ['📱 Abonnements','C',['🎵 Apple Music','☁️ Apple Drive / iCloud','🎵 Apple Music (Sarah)','☁️ Apple Drive (Sarah)','🎬 Netflix','🌐 Box Internet','🤖 ChatGPT','📱 Abonnement téléphone','📱 Abonnement téléphone Darris','📱 Abonnement téléphone Sarah','🚕 Uber One','🏋️ Salle de sport']],
-  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo','🛡️ Sécurillon','🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges']],
+  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo' ,'🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges']],
 ];
 const EXC_HEADER='🎉 Exceptionnel / Ponctuel';
 const SEC_NAMES=SECTIONS.map(s=>s[0]);
