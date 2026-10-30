@@ -247,6 +247,7 @@ function valuesBatchGet(ranges,render){
   return api('/values:batchGet',{params:p});
 }
 const valuesUpdate=(range,value,vio='USER_ENTERED')=>api(`/values/${enc(range)}`,{method:'PUT',params:{valueInputOption:vio},body:{values:[[value]]}});
+const valuesClear=(range)=>api(`/values/${enc(range)}:clear`,{method:'POST',body:{}});
 const valuesUpdateRow=(range,rowVals,vio='USER_ENTERED')=>api(`/values/${enc(range)}`,{method:'PUT',params:{valueInputOption:vio},body:{values:[rowVals]}});
 const valuesAppend=(range,row,vio='RAW')=>api(`/values/${enc(range)}:append`,{method:'POST',params:{valueInputOption:vio,insertDataOption:'INSERT_ROWS'},body:{values:[row]}});
 const valuesAppendRows=(range,rows,vio='USER_ENTERED')=>api(`/values/${enc(range)}:append`,{method:'POST',params:{valueInputOption:vio,insertDataOption:'INSERT_ROWS'},body:{values:rows}});
@@ -548,21 +549,64 @@ async function ensureJournal(){
 /* ---------- Suppression d'une saisie (retire le montant + la ligne du journal) ---------- */
 async function deleteEntry(item){
   const sep=await getDecSep();
-  const cand=[]; const n=item.amt;
-  cand.push(String(n).replace('.',sep));
-  if(Number.isFinite(n)) cand.push(n.toFixed(2).replace('.',sep));
+  const n=Number(item.amt);
   const cur=await valuesGet(item.cell,'FORMULA');
-  let f=(cur.values&&cur.values[0]&&cur.values[0][0]!==undefined)?String(cur.values[0][0]):'';
-  let done=false;
-  for(const c of [...new Set(cand)]){
-    const needle='+'+c; const i=f.lastIndexOf(needle);
-    if(i>=0){ const after=f[i+needle.length]; if(after===undefined||!/[0-9]/.test(after)){ f=f.slice(0,i)+f.slice(i+needle.length); done=true; break; } }
-    if(f==='='+c){ f=''; done=true; break; }
+  const raw=(cur.values&&cur.values[0]&&cur.values[0][0]!==undefined)?String(cur.values[0][0]).trim():'';
+
+  const parsed=parseFormulaTerms(raw,sep);
+  let next=null;
+  if(parsed.additive){
+    let removed=false;
+    const kept=[];
+    for(const t of parsed.terms){
+      const value=(Number(t.num)||0)*(t.sign||1);
+      if(!removed && Math.abs(value-n)<0.005){ removed=true; continue; }
+      kept.push(value);
+    }
+    if(removed){
+      if(!kept.length) next='';
+      else {
+        const fmt=v=>String(Math.abs(v)).replace('.',sep);
+        next='='+kept.map((v,i)=>{
+          const abs=fmt(v);
+          if(i===0) return v<0?'-'+abs:abs;
+          return (v<0?'-':'+')+abs;
+        }).join('');
+      }
+    }
   }
-  if(!done){ const s=String(f||'').trim(); f=(s===''?'=0':(s.startsWith('=')?s:'='+s))+'-'+cand[0]; }
-  await valuesUpdate(item.cell,f);
+
+  if(next===null){
+    const candidates=[String(n).replace('.',sep), n.toFixed(2).replace('.',sep)]
+      .filter((v,i,a)=>a.indexOf(v)===i);
+    let f=raw, removed=false;
+    for(const value of candidates){
+      const escaped=value.replace(/\./g,'\\.');
+      const patterns=[
+        new RegExp('\\+'+escaped+'$'),
+        new RegExp('^='+escaped+'$'),
+        new RegExp('^=\\('+escaped+'\\)$')
+      ];
+      for(const re of patterns){
+        if(re.test(f)){
+          if(re.source.startsWith('^=')) f='';
+          else f=f.replace(re,'');
+          removed=true;
+          break;
+        }
+      }
+      if(removed) break;
+    }
+    if(!removed) throw new Error('Montant introuvable dans la cellule : suppression annulée pour protéger le Google Sheet.');
+    next=f;
+  }
+
+  if(next==='') await valuesClear(item.cell);
+  else await valuesUpdate(item.cell,next);
+
   await deleteRowAt(JOURNAL,item.sheetRow);
-  const mm=String(item.cell).match(/^'(.+)'!/); if(mm) delete monthCache[mm[1]];
+  const mm=String(item.cell).match(/^'(.+)'!/);
+  if(mm){ delete monthCache[mm[1]]; delete structCache[mm[1]]; }
   journalCache=null;
 }
 
@@ -931,7 +975,8 @@ async function renderMois(){
   body.appendChild(head);
   st.sections.forEach(sec=>{
     const isRev=(sec.name===SEC_NAMES[0]);
-    const items=sec.labels.map(l=>({l,v:val[l]})).filter(x=>x.v&&((isRev?x.v.ent:x.v.sor)>0));
+    let items=sec.labels.map(l=>({l,v:val[l]||{ent:0,sor:0}}));
+    if(sec.name===EXC_HEADER) items=items.filter(x=>x.v&&((isRev?x.v.ent:x.v.sor)>0));
     if(!items.length) return;
     const card=el('div','card'); card.style.margin='14px 0 0';
     card.appendChild(el('h3',null,sec.name));
