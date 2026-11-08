@@ -67,7 +67,7 @@
       for(let attempt=0;attempt<attempts;attempt++){
         if(method==='GET'){
           const slot=Math.max(Date.now(),nextReadSlot);
-          nextReadSlot=slot+2200;
+          nextReadSlot=slot+1250;
           if(slot>Date.now()) await delay(slot-Date.now());
         }
         let r=await send();
