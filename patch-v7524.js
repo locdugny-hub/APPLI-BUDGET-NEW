@@ -215,18 +215,26 @@
   }
 
   function journalDateISO(v,fallbackTab){
-    if(typeof v==='number'&&Number.isFinite(v)){
-      const ms=Math.round((v-25569)*86400000);
-      const d=new Date(ms);
-      if(!Number.isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    // Google Sheets UNFORMATTED_VALUE renvoie une date en nombre de jours.
+    // Ne jamais convertir ce nombre en texte avant de le traiter.
+    const str=String(v==null?'':v).trim();
+    if(typeof v==='number'||/^\d{5}(?:[.,]\d+)?$/.test(str)){
+      const serial=Number(str.replace(',','.'));
+      if(Number.isFinite(serial)&&serial>=20000&&serial<=100000){
+        const d=new Date(Math.floor(serial-25569)*86400000);
+        if(!Number.isNaN(d.getTime())) return d.toISOString().slice(0,10);
+      }
     }
-    const s=String(v==null?'':v).trim();
-    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    return presetISOFor(fallbackTab);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    if(/^\d{4}-\d{2}-\d{2}T/.test(str)) return str.slice(0,10);
+    const fr=str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(fr) return `${fr[3]}-${fr[2]}-${fr[1]}`;
+    // Date réellement absente: ne jamais la remplacer par la date du jour.
+    return '';
   }
   function displayJournalDate(v,tab){
     const iso=journalDateISO(v,tab);
-    return frDate(iso);
+    return iso?frDate(iso):'Date non renseignée';
   }
 
   function ensureEditor(){
@@ -450,7 +458,7 @@
       });
       m.tracked.forEach(x=>items.push({
         kind:'app',label,tab,col:m.col,amount:Number(x.r[4])||0,
-        date:String(x.r[1]||''),note:String(x.r[5]||''),journalRow:x.sheetRow
+        date:x.r[1]??'',note:String(x.r[5]||''),journalRow:x.sheetRow
       }));
       $('#m-count').textContent=items.length?`${items.length} entree${items.length>1?'s':''}`:'';
       if(!items.length){hist.appendChild(el('p','muted','Aucune entree ce mois-ci.'));return;}
