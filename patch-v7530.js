@@ -45,29 +45,54 @@
     return j.token;
   }
 
+  /* Les appels Google Sheets passent tous par ce proxy. Réduire les
+     lectures concurrentes et gérer les quotas avant de toucher aux écritures. */
+  const pendingReads=new Map();
+  let nextReadSlot=0;
+  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   async function backendApi(path,{method='GET',params=null,body=null}={}){
-    let token=deviceToken();
-    if(!token) token=await bootstrapDevice();
-
-    const send=()=>fetch('/api/sheets',{
-      method:'POST',
-      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({path,method,params:paramPairs(params),body}),
-      cache:'no-store'
-    });
-
-    let r=await send();
-    if(r.status===401){
-      clearDeviceToken();
-      token=await bootstrapDevice();
-      r=await send();
-    }
-    if(!r.ok){
-      const text=await r.text().catch(()=>'');
-      throw new Error('Backend '+r.status+(text?': '+text.slice(0,160):''));
-    }
-    lastSync=Date.now();
-    return r.json();
+    const pairs=paramPairs(params);
+    const key=method==='GET'?JSON.stringify([path,pairs]):null;
+    if(key&&pendingReads.has(key)) return pendingReads.get(key);
+    const job=(async()=>{
+      let token=deviceToken();
+      if(!token) token=await bootstrapDevice();
+      const send=()=>fetch('/api/sheets',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({path,method,params:pairs,body}),
+        cache:'no-store'
+      });
+      const attempts=method==='GET'?5:1;
+      for(let attempt=0;attempt<attempts;attempt++){
+        if(method==='GET'){
+          const slot=Math.max(Date.now(),nextReadSlot);
+          nextReadSlot=slot+2200;
+          if(slot>Date.now()) await delay(slot-Date.now());
+        }
+        let r=await send();
+        if(r.status===401){
+          clearDeviceToken();
+          token=await bootstrapDevice();
+          r=await send();
+        }
+        if(r.status===429&&method==='GET'&&attempt<attempts-1){
+          const coolDown=Math.min(25000,3000*Math.pow(2,attempt));
+          nextReadSlot=Math.max(nextReadSlot,Date.now()+coolDown);
+          await delay(coolDown);
+          continue;
+        }
+        if(!r.ok){
+          const errorText=await r.text().catch(()=>'');
+          if(r.status===429) throw new Error('Google Sheets temporairement saturé (429). Réessaie dans une minute, sans multiplier les clics.');
+          throw new Error('Backend '+r.status+(errorText?': '+errorText.slice(0,160):''));
+        }
+        lastSync=Date.now();
+        return r.json();
+      }
+    })();
+    if(key) pendingReads.set(key,job);
+    try{return await job;}finally{if(key)pendingReads.delete(key);}
   }
 
   api=async function(path,opts={}){
