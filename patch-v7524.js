@@ -11,7 +11,9 @@
   window.__budgetV7524=true;
 
   const cache=new Map();
-  const TTL=20000;
+  const TTL=30000;
+  let journalSnapshot=null, journalPending=null;
+  const JOURNAL_TTL=30000;
   let state=null;
   let armed=false, armTimer=null;
 
@@ -49,6 +51,7 @@
   function key(label,tab){return tab+'|'+label;}
   function clear(label,tab){
     cache.delete(key(label,tab));
+    journalSnapshot=null; journalPending=null;
     delete monthCache[tab];
     journalCache=null;
     lastSync=Date.now();
@@ -138,14 +141,13 @@
     const old=cache.get(k);
     if(!force&&old&&now-old.at<TTL) return old.data;
     const inf=await info(tab,label);
-    const [fD,vD,jRows,sep]=await Promise.all([
-      valuesGet(inf.cell,'FORMULA'),
-      valuesGet(inf.cell,'UNFORMATTED_VALUE'),
-      fullJournalRows(),
+    const [cellInfo,jRows,sep]=await Promise.all([
+      readCellDetail(inf.cell),
+      fullJournalRows(!!force),
       getDecSep()
     ]);
-    const raw=(fD.values&&fD.values[0]&&fD.values[0][0]!==undefined)?fD.values[0][0]:'';
-    const total=(vD.values&&vD.values[0]&&vD.values[0][0]!=null)?Number(vD.values[0][0])||0:0;
+    const raw=cellInfo.raw;
+    const total=cellInfo.total;
     const tracked=(jRows||[]).map((r,i)=>({r:r||[],sheetRow:i+2}))
       .filter(x=>x.r.some(v=>v!==''&&v!=null))
       .filter(x=>{
@@ -165,10 +167,30 @@
     return (d.values&&d.values[0]&&d.values[0][0]!=null)?Number(d.values[0][0])||0:0;
   }
 
-  async function fullJournalRows(){
-    await ensureJournal();
-    const d=await valuesGet(`'${JOURNAL}'!A2:Q`,'UNFORMATTED_VALUE');
-    return d.values||[];
+  /* Une requête unique renvoie à la fois la formule et sa valeur calculée.
+     Avant : deux lectures séquentiellement limitées pour une seule cellule. */
+  async function readCellDetail(cell){
+    const d=await api('',{params:{ranges:cell,includeGridData:'true',
+      fields:'sheets(data(rowData(values(userEnteredValue,effectiveValue))))'}});
+    const v=d.sheets?.[0]?.data?.[0]?.rowData?.[0]?.values?.[0]||{};
+    const e=v.userEnteredValue||{}, a=v.effectiveValue||{};
+    const raw=e.formulaValue!==undefined?e.formulaValue:
+      e.stringValue!==undefined?e.stringValue:e.numberValue!==undefined?String(e.numberValue):'';
+    const total=Number(a.numberValue!==undefined?a.numberValue:e.numberValue)||0;
+    return {raw,total};
+  }
+  async function fullJournalRows(force=false){
+    if(!force&&journalSnapshot&&Date.now()-journalSnapshot.at<JOURNAL_TTL) return journalSnapshot.rows;
+    if(!force&&journalPending) return journalPending;
+    const job=(async()=>{
+      await ensureJournal();
+      const d=await valuesGet(`'${JOURNAL}'!A2:Q`,'UNFORMATTED_VALUE');
+      const rows=d.values||[];
+      journalSnapshot={rows,at:Date.now()};
+      return rows;
+    })();
+    if(!force) journalPending=job;
+    try{return await job;}finally{if(journalPending===job) journalPending=null;}
   }
   function freeRow(rows){
     for(let i=0;i<rows.length;i++){
@@ -449,7 +471,7 @@
     const m=await model(label,tab,true);
     const amount=Number(amtStr);
     if(!Number.isFinite(amount)) throw new Error('Montant invalide.');
-    const rows=await fullJournalRows(), jr=freeRow(rows);
+    const rows=await fullJournalRows(true), jr=freeRow(rows);
     const apps=trackedList(m,null,{amount});
     const next=formula(m.historical,apps,m.sep);
     const rowVals=journalRow({dateISO,tab,label,amount,note,cell:m.cell,col:m.col});
@@ -496,10 +518,8 @@
     }
   }
 
-  const previousOnAuthed7524=onAuthed;
-  onAuthed=async function(){
-    await previousOnAuthed7524();
-    setTimeout(()=>repairOctoberDetailedCells(),1800);
-  };
+  // La réparation historique est une opération exceptionnelle :
+  // ne jamais la réexécuter à chaque connexion (lectures et écritures inutiles).
+  window.budgetRepairOctoberDetailedCells=repairOctoberDetailedCells;
 
 })();
