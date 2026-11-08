@@ -226,18 +226,51 @@ async function ensureToken(){
 function showReconnect(){ $('#app').style.display='none'; $('#nav').classList.remove('on'); $('#screen-connect').style.display='block'; }
 
 /* ---------- Sheets API ---------- */
+/* Quota Google Sheets: dédupliquer les lectures concurrentes et limiter
+   leur cadence. Les écritures ne sont jamais rejouées automatiquement:
+   un retry aveugle pourrait créer des doublons. */
+const pendingSheetReads=new Map();
+let nextSheetReadAt=0;
+const pauseSheets=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function api(path,{method='GET',params=null,body=null}={}){
-  await ensureToken();
-  let url=`https://sheets.googleapis.com/v4/spreadsheets/${CFG.sheetId}${path}`;
-  if(params){ const qs=(params instanceof URLSearchParams)?params:new URLSearchParams(params);
-    url+=(url.includes('?')?'&':'?')+qs.toString(); }
-  const opt={method,headers:{Authorization:`Bearer ${accessToken}`}};
-  if(body){opt.headers['Content-Type']='application/json'; opt.body=JSON.stringify(body);}
-  let r=await fetch(url,opt);
-  if(r.status===401){ clearTok(); await ensureToken(); opt.headers.Authorization=`Bearer ${accessToken}`; r=await fetch(url,opt); }
-  if(!r.ok){ const t=await r.text(); throw new Error(`API ${r.status}: ${t.slice(0,160)}`); }
-  lastSync=Date.now();
-  return r.json();
+  const qs=params?(params instanceof URLSearchParams?params:new URLSearchParams(params)):null;
+  const suffix=qs?'?'+qs.toString():'';
+  const key=method==='GET'?path+suffix:null;
+  if(key&&pendingSheetReads.has(key)) return pendingSheetReads.get(key);
+  const work=(async()=>{
+    await ensureToken();
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${CFG.sheetId}${path}${suffix}`;
+    const opt={method,headers:{Authorization:`Bearer ${accessToken}`}};
+    if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);}
+    const maxAttempts=method==='GET'?5:1;
+    for(let attempt=0;attempt<maxAttempts;attempt++){
+      if(method==='GET'){
+        const slot=Math.max(Date.now(),nextSheetReadAt);
+        nextSheetReadAt=slot+2200;
+        if(slot>Date.now()) await pauseSheets(slot-Date.now());
+      }
+      let r=await fetch(url,opt);
+      if(r.status===401){
+        clearTok();await ensureToken();opt.headers.Authorization=`Bearer ${accessToken}`;
+        r=await fetch(url,opt);
+      }
+      if(r.status===429&&method==='GET'&&attempt<maxAttempts-1){
+        const delay=Math.min(25000,3000*Math.pow(2,attempt));
+        nextSheetReadAt=Math.max(nextSheetReadAt,Date.now()+delay);
+        await pauseSheets(delay);
+        continue;
+      }
+      if(!r.ok){
+        const t=await r.text();
+        if(r.status===429) throw new Error('Google Sheets temporairement saturé (quota 429). Réessaie dans une minute sans multiplier les clics.');
+        throw new Error(`API ${r.status}: ${t.slice(0,160)}`);
+      }
+      lastSync=Date.now();
+      return r.json();
+    }
+  })();
+  if(key) pendingSheetReads.set(key,work);
+  try{return await work;}finally{if(key)pendingSheetReads.delete(key);}
 }
 const enc=r=>encodeURIComponent(r);
 const valuesGet=(range,render)=>api(`/values/${enc(range)}`,{params:render?{valueRenderOption:render}:null});
@@ -726,7 +759,9 @@ async function onAuthed(){
   $('#hdr-month').textContent=tabName(new Date());
   invalidateCaches();
   renderQueueBadge(); flushQueue();
-  try{ await loadMeta(); await syncDetectedMonthsToIndexes(); await syncGlobalSummaryCategories(); }catch(_){ /* hors-ligne / ancien classeur : démarrage quand même */ }
+  // Ne pas lancer de scan complet de la Synthèse au démarrage:
+  // il consommerait le quota utile aux saisies et à l'historique.
+  try{ await loadMeta(); }catch(_){ /* hors-ligne: la saisie reste affichée */ }
   updateSyncLine();
   renderCategories();
   if(!pinHash()) showLock('create',()=>{});
