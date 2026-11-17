@@ -1137,7 +1137,7 @@ async function loadMonths(titles,force){
   const need=titles.filter(t=>{ const c=monthCache[t]; if(!c) return true;
     const ttl=(t===cur)?60*1000:15*60*1000; return !!force||now-c.at>ttl; });
   if(need.length){
-    const res=await valuesBatchGet(need.map(t=>`'${t}'!A1:D200`),'UNFORMATTED_VALUE');
+    const res=await valuesBatchGet(need.map(t=>`'${t}'!A1:G200`),'UNFORMATTED_VALUE');
     (res.valueRanges||[]).forEach((vr,i)=>{ const rows=vr.values||[];
       monthCache[need[i]]={rows,at:now,stat:computeMonthStat(rows)}; });
   }
@@ -1374,6 +1374,17 @@ async function renderDashboard(){
     row.appendChild(el('div','bl',x.name));
     const bar=el('div','bar'); const i2=el('i'); i2.style.width=Math.round(x.val/maxSec*100)+'%'; i2.style.background=x.color; bar.appendChild(i2); row.appendChild(bar);
     row.appendChild(el('div','bv',Math.round(x.val/totSec*100)+'% · '+fmtEUR0(x.val))); brk.appendChild(row); });
+  if(typeof window.renderMealDashboard==='function'){
+    const selected=dash.year==='all'?dashTabs:dashTabs.filter(t=>t.y===dash.year&&(dash.month==null||t.m===dash.month));
+    const mealSeries=selected.map(t=>{
+      const cached=monthCache[t.title];
+      const row=cached?.rows?.[100]||[];
+      const active=String(cached?.rows?.[98]?.[0]||'').startsWith('🍱 AVANTAGE REPAS');
+      return {title:t.title,year:t.y,month:t.m,total:active?(Number(row[0])||0):0,
+        employer:active?(Number(row[3])||0):0,personal:active?(Number(row[5])||0):0};
+    });
+    window.renderMealDashboard(mealSeries,dash.year,dash.month);
+  }
 }
 /* Détail d'une catégorie sur l'année (ou toutes les années) : mois par mois */
 function openCatYear(label){
