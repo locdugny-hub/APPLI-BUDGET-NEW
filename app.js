@@ -378,6 +378,8 @@ async function syncMonthCategories(tab){
   const add=[], refAdd=[];
   for(const sec of st.sections){
     for(const label of sec.labels){
+      // Suivi purement informatif : ne jamais créer de ligne bancaire/analytique.
+      if(label==='🍱 Tickets-restaurant') continue;
       const specs=sec.name===SEC_NAMES[0]?[['Entrée','B']]:sec.name===EXC_HEADER?[['Entrée','B'],['Sortie','C']]:[['Sortie','C']];
       for(const [type,col] of specs){
         const refKey=`${type}|${label}`;
@@ -549,6 +551,7 @@ function classifyJournalEntry(label,note,col,dateISO){
 
 /* ---------- Écriture d'une saisie ---------- */
 async function writeEntry({label,amtStr,dateISO,note,_interactive=true}){
+  if(label==='🍱 Tickets-restaurant') throw new Error('Utilise la fiche Tickets-restaurant : les paiements carte ne doivent pas entrer dans le budget bancaire.');
   const d=new Date(dateISO+'T12:00:00');
   await loadMeta();
   let tab=tabTitleFor(d.getFullYear(),d.getMonth());
@@ -731,6 +734,7 @@ async function addCategory({emoji,name,secIdx,startTab,alsoFuture}){
 
 /* ---------- Suppression d'une catégorie (du mois uniquement) ---------- */
 async function deleteCategory(tab,label){
+  if(label==='🍱 Tickets-restaurant') throw new Error('Cette catégorie informative est conservée pour garantir la traçabilité des paiements carte.');
   const st=await getTabStructure(tab);
   const R=st.map[label]; if(!R) throw new Error('Catégorie introuvable.');
   const sec=st.sections.find(s=>s.labels.includes(label));
