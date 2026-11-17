@@ -100,6 +100,108 @@
     const tab=gridTab||tabTitleFor(new Date().getFullYear(),new Date().getMonth());
     if(tabKey(tab)>='2025-11')container.prepend(buildMealPanel(tab,null));
   };
+
+  const dashCss=document.createElement('style');
+  dashCss.textContent=`
+  .meal-dashboard{margin:15px 12px 20px;border-radius:18px;border:1px solid #dae5f1;overflow:hidden;background:#fff;box-shadow:0 7px 24px rgba(15,39,69,.07)}
+  .meal-dashboard .md-head{background:linear-gradient(112deg,#172b48,#294b71);padding:16px 18px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .meal-dashboard .md-title{font-size:16px;color:#fff;font-weight:800;margin:3px 0}
+  .meal-dashboard .md-sub{font-size:11px;color:#d7e5f6}
+  .meal-dashboard .md-tag{font-size:10px;background:#ffe0a0;color:#61420a;border-radius:30px;padding:7px 9px;font-weight:800;white-space:nowrap}
+  .meal-dashboard .md-body{padding:16px}
+  .meal-dashboard .md-total-label{font-size:11px;letter-spacing:.5px;color:#62748c;font-weight:750}
+  .meal-dashboard .md-total{font-size:30px;font-weight:850;color:#172b48;letter-spacing:-.6px;margin:5px 0 14px;font-variant-numeric:tabular-nums}
+  .meal-dashboard .md-split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .meal-dashboard .md-mini{border-radius:12px;padding:11px;border:1px solid #e2eaf3;background:#f7faff}
+  .meal-dashboard .md-mini small{font-size:11px;color:#62748c;display:block;line-height:1.4}
+  .meal-dashboard .md-mini strong{font-size:19px;display:block;margin-top:5px;font-variant-numeric:tabular-nums;color:#172b48}
+  .meal-dashboard .md-mini:first-child strong{color:#19805a}
+  .meal-dashboard .md-mini:last-child strong{color:#3975c5}
+  .meal-dashboard .md-bar{height:9px;overflow:hidden;border-radius:8px;display:flex;margin:14px 0}
+  .meal-dashboard .md-bar i:first-child{width:59.0196078%;background:#19805a}
+  .meal-dashboard .md-bar i:last-child{flex:1;background:#3975c5}
+  .meal-dashboard .md-chart-title{font-size:13px;font-weight:800;color:#213a5c;margin:20px 0 10px}
+  .meal-dashboard .md-chart{display:flex;align-items:flex-end;gap:5px;height:128px;border-bottom:1px solid #d9e3ee;padding:0 4px 0}
+  .meal-dashboard .md-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;gap:3px}
+  .meal-dashboard .md-figure{width:min(100%,22px);border-radius:5px 5px 0 0;background:linear-gradient(180deg,#4c8fcb,#2a5d94);min-height:2px}
+  .meal-dashboard .md-labels{display:flex;gap:5px;padding:7px 4px 0}
+  .meal-dashboard .md-labels span{flex:1;min-width:0;font-size:10px;text-align:center;color:#63758f}
+  .meal-dashboard .md-footer{font-size:11px;color:#6a7a90;margin-top:15px;line-height:1.5}
+  .meal-dashboard .md-empty{font-size:12px;color:#63758f;margin:18px 0}
+  @media(max-width:385px){.meal-dashboard .md-total{font-size:27px}.meal-dashboard .md-mini strong{font-size:16px}.meal-dashboard .md-labels span{font-size:9px}}
+  `;
+  document.head.appendChild(dashCss);
+  window.renderMealDashboard=function(data,year,month){
+    const parent=document.getElementById('view-resume');
+    if(!parent)return;
+    let host=document.getElementById('meal-dashboard-panel');
+    if(!host){
+      host=document.createElement('section');
+      host.id='meal-dashboard-panel';
+      host.className='meal-dashboard';
+      const compare=document.getElementById('dash-compare-card');
+      if(compare&&compare.parentNode===parent)parent.insertBefore(host,compare);
+      else parent.appendChild(host);
+    }
+    host.replaceChildren();
+    const available=data.filter(x=>Number(x.total)>0);
+    const total=data.reduce((a,x)=>a+x.total,0);
+    const employer=data.reduce((a,x)=>a+x.employer,0);
+    const personal=data.reduce((a,x)=>a+x.personal,0);
+    const nowTitle=year==='all'?'Toutes les années':month==null?'Année '+year:MONTHS[month]+' '+year;
+    const head=mealElement('div','md-head');
+    const heading=mealElement('div');
+    heading.appendChild(mealElement('div','md-sub','🍱 AVANTAGE REPAS · PILOTAGE'));
+    heading.appendChild(mealElement('div','md-title','Carte titres-restaurant'));
+    heading.appendChild(mealElement('div','md-sub',nowTitle));
+    head.appendChild(heading);
+    head.appendChild(mealElement('span','md-tag','HORS BUDGET'));
+    host.appendChild(head);
+    const body=mealElement('div','md-body');
+    body.appendChild(mealElement('div','md-total-label','DÉPENSES CARTE · PÉRIODE SÉLECTIONNÉE'));
+    body.appendChild(mealElement('div','md-total',euro(total)));
+    const split=mealElement('div','md-split');
+    for(const [label,amount]of [['Part employeur estimée',employer],['Ma part estimée',personal]]){
+      const box=mealElement('div','md-mini');
+      box.appendChild(mealElement('small','',label));
+      box.appendChild(mealElement('strong','',euro(amount)));
+      split.appendChild(box);
+    }
+    body.appendChild(split);
+    const bar=mealElement('div','md-bar');
+    bar.appendChild(document.createElement('i'));bar.appendChild(document.createElement('i'));
+    body.appendChild(bar);
+    if(available.length){
+      body.appendChild(mealElement('div','md-chart-title','Évolution des dépenses par carte'));
+      const chart=mealElement('div','md-chart');
+      const labels=mealElement('div','md-labels');
+      let points=data;
+      // Éviter des barres illisibles sur mobile : 12 derniers mois pour « Tout ».
+      if(year==='all'&&points.length>12)points=points.slice(-12);
+      const max=Math.max(1,...points.map(p=>p.total));
+      for(const point of points){
+        const column=mealElement('div','md-col');
+        column.setAttribute('role','button');
+        column.setAttribute('tabindex','0');
+        column.setAttribute('aria-label',point.title+' : '+euro(point.total));
+        column.title=point.title+' · '+euro(point.total);
+        const fig=mealElement('div','md-figure');
+        fig.style.height=Math.max(2,Math.round(point.total/max*109))+'px';
+        fig.style.opacity=point.total?1:0.16;
+        column.appendChild(fig);chart.appendChild(column);
+        column.onclick=()=>openCatSheet(LABEL,point.title);
+        column.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();column.click();}};
+        labels.appendChild(mealElement('span','',MONTHS[point.month].slice(0,3)));
+      }
+      body.appendChild(chart);body.appendChild(labels);
+      if(year==='all'&&data.length>12)
+        body.appendChild(mealElement('div','md-footer','Graphique : 12 derniers mois. Les totaux ci-dessus couvrent toute la période sélectionnée.'));
+    }else{
+      body.appendChild(mealElement('div','md-empty','Aucun paiement par carte enregistré dans cette période.'));
+    }
+    body.appendChild(mealElement('div','md-footer','Suivi uniquement informatif · 6,02 € employeur / 4,18 € salarié par titre de 10,20 € · Non inclus dans les dépenses, revenus ou l’épargne.'));
+    host.appendChild(body);
+  };
   const previousOpen=openCatSheet;
   openCatSheet=function(label,tab){
     previousOpen(label,tab);
