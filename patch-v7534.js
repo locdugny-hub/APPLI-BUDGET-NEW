@@ -98,7 +98,7 @@
     const q=(document.getElementById('search')?.value||'').trim().toLowerCase();
     if(!container||q&&!('avantage repas tickets-restaurant carte'.includes(q)||LABEL.toLowerCase().includes(q)))return;
     const tab=gridTab||tabTitleFor(new Date().getFullYear(),new Date().getMonth());
-    if(tabKey(tab)>='2025-11')window.renderMealBenefitCard(container,tab,null);
+    if(tabKey(tab)>='2025-11')container.prepend(buildMealPanel(tab,null));
   };
   const previousOpen=openCatSheet;
   openCatSheet=function(label,tab){
