@@ -61,20 +61,34 @@
       const data=await valuesGet("'"+SHEET+"'!A13:J500",'UNFORMATTED_VALUE');
       if(seq!==detailSeq)return;
       const entries=(data.values||[]).filter(r=>!!isoDate(r[0]));
-      const mk=monthKey(tab);
-      const list=entries.filter(r=>isoDate(r[0]).slice(0,7)===mk).reverse();
-      const spent=list.reduce((sum,r)=>sum+(r[2]==='Paiement'?Number(r[5])||0:0),0);
-      const funded=list.reduce((sum,r)=>sum+(r[2]==='Chargement'?Number(r[3])||0:0),0);
-      document.getElementById('m-total').textContent=euro(spent);
-      document.getElementById('m-count').textContent=list.length+' mouvement'+(list.length>1?'s':'')+' · chargements '+euro(funded);
-      hist.innerHTML='';
-      if(!list.length){hist.appendChild(el('p','muted','Aucun mouvement recensé pour ce mois.'));return;}
-      for(const r of list){
-        const type=String(r[2]||''),amount=Number(r[3])||0;
-        const isPayment=type==='Paiement',isCredit=type==='Chargement'||type==='Prolongation';
-        const note=isoDate(r[0]).split('-').reverse().join('/')+' · '+(isPayment?'Paiement accepté':type)+(type==='Refus'?' (non débité)':'');
-        textRow(hist,String(r[1]||''),note,isPayment?'-'+euro(amount):isCredit?'+'+euro(amount):type==='Péremption'?'-'+euro(amount):'—',isCredit?'credit':!isPayment?'muted':'normal');
-      }
+      const current=monthKey(tab);
+      const months=[...new Set(entries.map(r=>isoDate(r[0]).slice(0,7)))].sort().reverse();
+      const renderPeriod=(chosen)=>{
+        const list=(chosen==='all'?entries:entries.filter(r=>isoDate(r[0]).slice(0,7)===chosen)).slice().reverse();
+        const spent=list.reduce((sum,r)=>sum+(r[2]==='Paiement'?Number(r[5])||0:0),0);
+        const funded=list.reduce((sum,r)=>sum+(r[2]==='Chargement'?Number(r[3])||0:0),0);
+        document.getElementById('m-total-l').textContent=chosen==='all'?'Dépenses historiques sur la carte':'Dépenses du mois · carte prépayée';
+        document.getElementById('m-total').textContent=euro(spent);
+        document.getElementById('m-count').textContent=list.length+' mouvement'+(list.length>1?'s':'')+' · chargements '+euro(funded);
+        hist.innerHTML='';
+        const picker=document.createElement('select');
+        picker.setAttribute('aria-label','Période de la carte titres-restaurant');
+        picker.style.cssText='width:100%;height:46px;border-radius:12px;border:1px solid #D6E0EC;background:#F7FAFE;padding:0 12px;font-size:15px;margin:2px 0 14px';
+        const showPeriod=m=>m==='all'?'Tout l’historique':(MONTHS[Number(m.slice(5,7))-1]+' '+m.slice(0,4));
+        [...new Set([current,...months,'all'])].forEach(m=>{
+          const o=document.createElement('option');o.value=m;o.textContent=showPeriod(m);o.selected=m===chosen;picker.appendChild(o);
+        });
+        picker.onchange=()=>renderPeriod(picker.value);
+        hist.appendChild(picker);
+        if(!list.length){hist.appendChild(el('p','muted','Aucun mouvement recensé pour ce mois.'));return;}
+        for(const r of list){
+          const type=String(r[2]||''),amount=Number(r[3])||0;
+          const isPayment=type==='Paiement',isCredit=type==='Chargement'||type==='Prolongation';
+          const note=isoDate(r[0]).split('-').reverse().join('/')+' · '+(isPayment?'Paiement accepté':type)+(type==='Refus'?' (non débité)':'');
+          textRow(hist,String(r[1]||''),note,isPayment?'-'+euro(amount):isCredit?'+'+euro(amount):type==='Péremption'?'-'+euro(amount):'—',isCredit?'credit':!isPayment?'muted':'normal');
+        }
+      };
+      renderPeriod(current);
     }catch(err){
       if(seq!==detailSeq)return;
       hist.innerHTML='';
