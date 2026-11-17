@@ -54,8 +54,8 @@ const SECTIONS=[
   ['🏠 Logement','C',['🏠 Location Romainville','💼 Charge copropriété Bondy','💼 Charge copropriété Dugny','🏛️ Taxe foncière (mensualisée)','🏦 Crédit Bondy','🏦 Crédit Dugny','⚡ Facture Électricité','🔥 Facture Gaz','🔥 Régularisation Gaz','🔧 Entretien chaudière','🏠 Maison & équipement','🔨 Entretien & réparations logement','🏘️ Entretien & réparations logements locatifs']],
   ['🚗 Transport','C',['⛽ Essence','🚗 Frais voiture','🚌 Navigo','🅿️ Parking & stationnement','🛣️ Péages']],
   ['🛡️ Assurances','C',['🚗 Assurance voiture','🏘️ Assurance Dugny','🏘️ Assurance Bondy','📄 Assurance emprunteur Bondy','📄 Assurance emprunteur Dugny','🏡 Assurance habitation Romainville','🛡️ Protection Boursorama','❤️ Mutuelle Sarah']],
-  ['📱 Abonnements','C',['🎵 Apple Music','☁️ Apple Drive / iCloud','🎵 Apple Music (Sarah)','☁️ Apple Drive (Sarah)','🎬 Netflix','🌐 Box Internet','🤖 ChatGPT','📱 Abonnement téléphone','📱 Abonnement téléphone Darris','📱 Abonnement téléphone Sarah','🚕 Uber One','🏋️ Salle de sport']],
-  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo' ,'🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges']],
+  ['📱 Abonnements','C',['🎵 Apple Music','☁️ Apple Drive / iCloud','🎵 Apple Music (Sarah)','☁️ Apple Drive (Sarah)','🎬 Netflix','🌐 Box Internet','🤖 ChatGPT','📱 Abonnement téléphone','📱 Abonnement téléphone Darris','📱 Abonnement téléphone Sarah','🚕 Uber One','🏋️ Salle de sport Sarah']],
+  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo' ,'🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges','🍱 Tickets-restaurant']],
 ];
 const EXC_HEADER='🎉 Exceptionnel / Ponctuel';
 const SEC_NAMES=SECTIONS.map(s=>s[0]);
