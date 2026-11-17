@@ -55,7 +55,7 @@ const SECTIONS=[
   ['🚗 Transport','C',['⛽ Essence','🚗 Frais voiture','🚌 Navigo','🅿️ Parking & stationnement','🛣️ Péages']],
   ['🛡️ Assurances','C',['🚗 Assurance voiture','🏘️ Assurance Dugny','🏘️ Assurance Bondy','📄 Assurance emprunteur Bondy','📄 Assurance emprunteur Dugny','🏡 Assurance habitation Romainville','🛡️ Protection Boursorama','❤️ Mutuelle Sarah']],
   ['📱 Abonnements','C',['🎵 Apple Music','☁️ Apple Drive / iCloud','🎵 Apple Music (Sarah)','☁️ Apple Drive (Sarah)','🎬 Netflix','🌐 Box Internet','🤖 ChatGPT','📱 Abonnement téléphone','📱 Abonnement téléphone Darris','📱 Abonnement téléphone Sarah','🚕 Uber One','🏋️ Salle de sport Sarah']],
-  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo' ,'🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges','🍱 Tickets-restaurant']],
+  ['🛒 Vie courante','C',['🛒 Courses','🍽️ Restaurants','✂️ Coiffeur','🚬 Chicha / Charbon','🎉 Sorties / Loisirs','🎁 Cadeaux','👨‍👩‍👧 Virement Papa','💶 Retrait espèces','📦 Frais divers','📦 Compte BRED Sarah','📦 Frais Sarah Fortuneo' ,'🏛️ URSSAF','✈️ Voyages & séjours','🩺 Santé','👕 Vêtements & accessoires','🤝 Dons & solidarité','📑 Frais administratifs & litiges']],
 ];
 const EXC_HEADER='🎉 Exceptionnel / Ponctuel';
 const SEC_NAMES=SECTIONS.map(s=>s[0]);
@@ -1090,6 +1090,17 @@ async function renderMois(){
     const stt=el('div','subtot'); stt.appendChild(el('span',null,'Sous-total')); stt.appendChild(el('span',null,fmtEUR(sub)));
     card.appendChild(stt); body.appendChild(card);
   });
+  // « Avantage repas » est un panneau autonome, après les rubriques bancaires.
+  // Les valeurs sont déjà présentes dans A1:G200 : aucune requête supplémentaire.
+  if(typeof window.renderMealBenefitCard==='function'&&
+     String(rows[98]?.[0]||'').startsWith('🍱 AVANTAGE REPAS')){
+    const amounts=rows[100]||[];
+    window.renderMealBenefitCard(body,tab,{
+      total:Number(amounts[0])||0,
+      employer:Number(amounts[3])||0,
+      personal:Number(amounts[5])||0
+    });
+  }
   const hint=el('p','muted','Touche une ligne pour voir le détail des saisies et en ajouter.');
   hint.style.cssText='font-size:12px;text-align:center;margin:16px 0 0'; body.appendChild(hint);
 }
