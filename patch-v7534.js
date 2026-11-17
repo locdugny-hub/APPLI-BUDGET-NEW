@@ -67,6 +67,14 @@
         loadCatDetail(LABEL,entryTab,++detailSeq);
       };
       hist.appendChild(picker);
+      const share=el('div','',null);
+      share.style.cssText='background:#f4f8ff;border:1px solid #dce7f5;padding:12px 14px;border-radius:13px;margin:0 0 13px;font-size:14px;color:#203957';
+      const shareTitle=el('div','', 'Répartition estimée · hors budget bancaire');
+      shareTitle.style.cssText='font-weight:600;margin-bottom:6px';
+      share.appendChild(shareTitle);
+      const shareDetail=el('div','', 'Employeur : '+euro(paid*6.02/10.20)+' · Ma part : '+euro(paid*4.18/10.20));
+      share.appendChild(shareDetail);
+      hist.appendChild(share);
       if(!data.length){hist.appendChild(el('p','muted','Aucun mouvement recensé pour ce mois.'));return;}
       for(const t of data.slice().reverse()){
         const isPayment=t.type==='Paiement';
@@ -89,8 +97,7 @@
       }
       // Détail du partage de dépense : quote-parts estimées, pas de
       // deuxième écriture bancaire ni de répartition de chargement fictive.
-      const share=el('p','muted','Part employeur estimée : '+euro(paid*6.02/10.20)+' · Ma part estimée : '+euro(paid*4.18/10.20));
-      hist.appendChild(share);
+
     }catch(err){
       if(seq!==detailSeq)return;
       document.getElementById('m-total').textContent='—';
