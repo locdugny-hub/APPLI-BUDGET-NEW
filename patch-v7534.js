@@ -24,6 +24,13 @@
     const p=parseMonthTitle(tab);
     return p?p.y+'-'+String(p.m+1).padStart(2,'0'):new Date().toISOString().slice(0,7);
   }
+  function isoDate(v){
+    if(typeof v==='number'&&Number.isFinite(v)){
+      return new Date(Math.floor(v-25569)*86400000).toISOString().slice(0,10);
+    }
+    const str=String(v||'').trim().replace(/^'/,'');
+    return /^\\d{4}-\\d{2}-\\d{2}$/.test(str)?str:'';
+  }
   function euro(n){return fmtEUR(Math.abs(Number(n)||0));}
   function textRow(parent,top,bottom,amount,kind){
     const row=el('div','ent-row');
@@ -53,9 +60,9 @@
     try{
       const data=await valuesGet("'"+SHEET+"'!A13:J500",'UNFORMATTED_VALUE');
       if(seq!==detailSeq)return;
-      const entries=(data.values||[]).filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(String(r[0]||'')));
+      const entries=(data.values||[]).filter(r=>!!isoDate(r[0]));
       const mk=monthKey(tab);
-      const list=entries.filter(r=>String(r[0]).slice(0,7)===mk).reverse();
+      const list=entries.filter(r=>isoDate(r[0]).slice(0,7)===mk).reverse();
       const spent=list.reduce((sum,r)=>sum+(r[2]==='Paiement'?Number(r[5])||0:0),0);
       const funded=list.reduce((sum,r)=>sum+(r[2]==='Chargement'?Number(r[3])||0:0),0);
       document.getElementById('m-total').textContent=euro(spent);
@@ -65,7 +72,7 @@
       for(const r of list){
         const type=String(r[2]||''),amount=Number(r[3])||0;
         const isPayment=type==='Paiement',isCredit=type==='Chargement'||type==='Prolongation';
-        const note=String(r[0]||'').split('-').reverse().join('/')+' · '+(isPayment?'Paiement accepté':type)+(type==='Refus'?' (non débité)':'');
+        const note=isoDate(r[0]).split('-').reverse().join('/')+' · '+(isPayment?'Paiement accepté':type)+(type==='Refus'?' (non débité)':'');
         textRow(hist,String(r[1]||''),note,isPayment?'-'+euro(amount):isCredit?'+'+euro(amount):type==='Péremption'?'-'+euro(amount):'—',isCredit?'credit':!isPayment?'muted':'normal');
       }
     }catch(err){
@@ -90,7 +97,7 @@
       if(!navigator.onLine)throw new Error('Connexion nécessaire pour enregistrer la carte.');
       const response=await valuesGet("'"+SHEET+"'!A13:D500",'UNFORMATTED_VALUE');
       const lines=response.values||[];
-      const duplicate=lines.some(r=>String(r[0])===dateISO&&
+      const duplicate=lines.some(r=>isoDate(r[0])===dateISO&&
         String(r[1]||'').toLowerCase()===merchant.toLowerCase()&&
         String(r[2])==='Paiement'&&Math.abs((Number(r[3])||0)+amount)<0.005);
       if(duplicate&&!confirm('Un paiement identique existe déjà à cette date. Ajouter quand même ?'))return;
