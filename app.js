@@ -1052,9 +1052,9 @@ async function renderMois(){
   const tab=currentMoisTab(); $('#mois-label').textContent=tab;
   $('#m-prev').disabled=(i<=0); $('#m-next').disabled=(i<0||i>=monthTabs.length-1);
   const body=$('#mois-body'); body.innerHTML='<p class="muted">Chargement…</p>';
-  let data; try{ data=await valuesGet(`'${tab}'!A1:D200`,'UNFORMATTED_VALUE'); }catch(e){ body.innerHTML='<p class="muted">Impossible de lire ce mois.</p>'; return; }
+  let data; try{ data=await valuesGet(`'${tab}'!A1:G200`,'UNFORMATTED_VALUE'); }catch(e){ body.innerHTML='<p class="muted">Impossible de lire ce mois.</p>'; return; }
   const rows=data.values||[]; const val={};
-  rows.forEach(r=>{ const a=(r[0]||'').toString().trim(); if(a){ val[a]={ent:Number(r[1])||0,sor:Number(r[2])||0}; } });
+  rows.forEach(r=>{ const a=(r[0]||'').toString().trim(); if(a){ val[a]={ent:Number(r[1])||0,sor:Number(r[2])||0,carte:Number(r[4])||0,employeur:Number(r[5])||0,salarie:Number(r[6])||0}; } });
   let st; try{ st=await getTabStructure(tab); }catch(e){ body.innerHTML='<p class="muted">Structure illisible.</p>'; return; }
   let totEnt=0,totSor=0;
   st.sections.forEach(sec=>sec.labels.forEach(l=>{ const v=val[l]; if(!v) return;
@@ -1077,11 +1077,14 @@ async function renderMois(){
     card.appendChild(el('h3',null,sec.name));
     let sub=0;
     items.forEach(({l,v})=>{
+      const isCarte=l==='🍱 Tickets-restaurant';
       const amount=isRev?v.ent:v.sor; sub+=amount;
       const row=el('div','mrow'); row.onclick=()=>openCatSheet(l,tab);
       const left=el('div','ml'); const p=l.split(' '); const emo=p.length>1?p.shift():'🏷️';
       left.appendChild(el('span','',emo)); left.appendChild(el('span','lbl',p.join(' ')||l));
-      row.appendChild(left); row.appendChild(el('div','mv'+(isRev?' rev':''),fmtEUR(amount)));
+      row.appendChild(left);
+      const affichage=isCarte?(fmtEUR(v.carte)+' · hors budget'):fmtEUR(amount);
+      row.appendChild(el('div','mv'+(isRev?' rev':''),affichage));
       card.appendChild(row);
     });
     const stt=el('div','subtot'); stt.appendChild(el('span',null,'Sous-total')); stt.appendChild(el('span',null,fmtEUR(sub)));
