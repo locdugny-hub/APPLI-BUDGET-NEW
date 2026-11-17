@@ -330,4 +330,35 @@
     }catch(err){toast('Carte titres-restaurant : '+(err?.message||err),true);}
     finally{btn.disabled=false;btn.textContent='Ajouter';}
   };
+  // Les versions v7.5.x remplacent renderDashboard après app.js.
+  // Raccorder le pilotage à l'implémentation finale, et aux sélections
+  // multi-années / multi-mois v7.5.17, pas à l'ancien dash.year.
+  const previousDashboard=renderDashboard;
+  let mealDashboardRevision=0;
+  renderDashboard=async function(){
+    const revision=++mealDashboardRevision;
+    await previousDashboard();
+    if(revision!==mealDashboardRevision)return;
+    const scope=typeof v75SelectedTabs==='function'?v75SelectedTabs():[];
+    const series=scope.map(t=>{
+      const cached=monthCache[t.title];
+      const rows=cached&&cached.rows||[];
+      const valid=String(rows[98]?.[0]||'').startsWith('🍱 AVANTAGE REPAS');
+      const vals=rows[100]||[];
+      return {
+        title:t.title,year:t.y,month:t.m,
+        total:valid?(Number(vals[0])||0):0,
+        employer:valid?(Number(vals[3])||0):0,
+        personal:valid?(Number(vals[5])||0):0
+      };
+    });
+    const ys=dash.years||[];
+    const mlist=Array.isArray(dash.months)?dash.months:[];
+    const year=ys.length===1?ys[0]:'all';
+    const month=mlist.length===1?mlist[0]:null;
+    if(typeof window.renderMealDashboard==='function'){
+      window.renderMealDashboard(series,year,month);
+    }
+  };
+
 })();
