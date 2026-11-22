@@ -67,6 +67,35 @@
         max-height:85dvh;
       }
     }
+
+    /* iOS standalone after OS upgrade: paint the PIN screen's entire
+       root canvas, including any area outside the fixed overlay. */
+    html:has(#lock.open),
+    body:has(#lock.open){
+      background:#12284B!important;
+      background-color:#12284B!important;
+      min-height:100%!important;
+      overflow:hidden!important;
+    }
+    html:has(#lock.open) #lock{
+      position:fixed!important;
+      top:0!important;
+      left:0!important;
+      right:0!important;
+      bottom:-180px!important;
+      height:auto!important;
+      min-height:calc(100dvh + 180px)!important;
+      padding-top:env(safe-area-inset-top,0px)!important;
+      padding-bottom:calc(180px + env(safe-area-inset-bottom,0px))!important;
+      background:linear-gradient(160deg,#12284B,#1C3A63)!important;
+      background-color:#12284B!important;
+      overscroll-behavior:none;
+    }
+    /* The same root paint should cover the transition to authentication. */
+    html:has(#screen-connect:not([style*="display: none"])),
+    body:has(#screen-connect:not([style*="display: none"])){
+      background:#12284B;
+    }
     @supports (height:100dvh){
       #app{min-height:100dvh;}
     }
