@@ -50,7 +50,7 @@
         width:100%;
         margin:0!important;
         transform:none!important;
-        padding:7px 4px calc(8px + env(safe-area-inset-bottom,0px))!important;
+        padding:15px 4px env(safe-area-inset-bottom,0px)!important;
         background:#fff;
       }
       #nav button {
