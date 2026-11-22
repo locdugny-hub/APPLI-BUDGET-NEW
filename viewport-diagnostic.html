@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#12284B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Budget · Diagnostic écran iPhone</title>
+<style>
+:root{color-scheme:light;--navy:#12284B}
+*{box-sizing:border-box}html{min-height:100%;background:#12284B}
+body{margin:0;background:#EFF4FA;color:#12284B;font-family:-apple-system,system-ui,sans-serif}
+header{background:#12284B;color:#fff;padding:18px 16px}h1{font-size:20px;margin:0 0 6px}header p{margin:0;color:#D5E3F4;font-size:13px}
+main{padding:16px;max-width:640px;margin:auto}
+p{line-height:1.45}
+.panel{background:#fff;border:1px solid #d7e2ee;border-radius:16px;margin-bottom:13px;padding:14px}
+dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;margin:10px 0 0}
+dt{font-size:13px;color:#53667f}dd{font-size:14px;font-weight:800;text-align:right;margin:0;font-variant-numeric:tabular-nums}
+.band{position:fixed;left:0;right:0;height:10px;pointer-events:none;z-index:2}
+.band.top{top:0;background:#e99321}.band.bottom{bottom:0;background:#31a76b}
+button{appearance:none;border:0;border-radius:12px;padding:12px 16px;background:#285d9e;color:white;font-weight:700;font-size:15px}
+small{color:#697991}
+.pad{height:140px}
+.safe{position:fixed;top:0;left:0;visibility:hidden;width:0;height:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+</style>
+</head>
+<body>
+<div class="band top"></div><div class="band bottom"></div>
+<header><h1>📐 Diagnostic écran Budget</h1><p>Test iOS 27 — aucun accès à Google Sheets, au PIN ou à Face ID</p></header>
+<main>
+<section class="panel">
+<strong>Ce que tu dois voir</strong>
+<p>Un trait <b style="color:#df8a1a">orange tout en haut</b> de la zone de la page et un trait <b style="color:#158a58">vert tout en bas</b>. S'il reste une bande blanche en dehors du trait vert, elle ne fait pas partie du viewport que cette page peut peindre.</p>
+</section>
+<section class="panel"><strong>Mesures de ton écran</strong><dl id="readings"></dl></section>
+<section class="panel"><strong>Test de rotation et de rafraîchissement</strong><p>Ouvre ce lien dans Safari puis, si possible, depuis l'icône installée. Compare les mesures et les bandes.</p><button id="refresh">Actualiser les mesures</button><p><small>Les valeurs restent sur cet appareil. Cette page n'enregistre et n'envoie aucune information.</small></p></section>
+<div class="pad"></div>
+</main>
+<div class="safe" id="safe"></div>
+<script>
+(function(){
+  function update(){
+    var css=getComputedStyle(document.getElementById('safe'));
+    var v=window.visualViewport;
+    var rows=[
+      ['Mode','standalone: '+(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)],
+      ['screen.width × height',screen.width+' × '+screen.height],
+      ['window.innerWidth × innerHeight',innerWidth+' × '+innerHeight],
+      ['document.clientWidth × clientHeight',document.documentElement.clientWidth+' × '+document.documentElement.clientHeight],
+      ['visualViewport.width × height',v?Math.round(v.width)+' × '+Math.round(v.height):'indisponible'],
+      ['visualViewport.offsetTop',v?Math.round(v.offsetTop)+' px':'indisponible'],
+      ['safe area top',css.paddingTop],
+      ['safe area bottom',css.paddingBottom],
+      ['window.devicePixelRatio',devicePixelRatio],
+      ['screen.height − innerHeight',(screen.height-innerHeight)+' px']
+    ];
+    var el=document.getElementById('readings');el.textContent='';
+    rows.forEach(function(row){var a=document.createElement('dt'),b=document.createElement('dd');a.textContent=row[0];b.textContent=row[1];el.append(a,b);});
+  }
+  document.getElementById('refresh').addEventListener('click',update);
+  window.addEventListener('resize',update);
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',update);
+  update();
+})();
+</script>
+</body>
+</html>
