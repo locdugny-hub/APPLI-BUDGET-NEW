@@ -29,13 +29,16 @@
       min-height:100dvh;
       background:var(--bg,#F4F7FB);
     }
+    /* iOS 27.2.1 reports 41 CSS px of real upper safe area when installed.
+       Its viewport already spans the full screen, so reserve the inset
+       once *inside the header*, not via body padding or fake overhangs. */
     /* An opaque iOS status bar owns the top inset; the app must not
        reserve that area a second time. The header stays in flow. */
     @media (max-width:600px){
       #app > header {
         position:relative!important;
         top:auto!important;
-        padding:7px 0 9px!important;
+        padding:calc(7px + env(safe-area-inset-top,0px)) 0 9px!important;
         min-height:0!important;
       }
       #app > header .h-top {
@@ -65,6 +68,12 @@
       height:auto!important;
       min-height:0!important;
       background:linear-gradient(160deg,#12284B,#1C3A63);
+    }
+    @media (display-mode:standalone){
+      #lock{
+        padding-top:calc(24px + env(safe-area-inset-top,0px))!important;
+        padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))!important;
+      }
     }
     html:has(#lock.open),
     body:has(#lock.open){
